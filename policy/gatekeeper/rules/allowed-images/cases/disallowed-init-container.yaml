@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: case-image-init
+  namespace: triage
+  annotations:
+    test.platform.lab/expect: "container <fetch> image <docker.io/library/busybox:1.37> is not from an allowed registry"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: case-image-init
+  template:
+    metadata:
+      labels:
+        app: case-image-init
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: fetch
+          image: docker.io/library/busybox:1.37
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 32Mi
+      containers:
+        - name: app
+          image: ghcr.io/salmanamn/voice-gateway:0.1.0
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 128Mi

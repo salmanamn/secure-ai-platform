@@ -1,0 +1,5 @@
+# A platform namespace is exempt (`default` exists on every cluster, so the live check updates it, dry run only).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: default

@@ -1,0 +1,8 @@
+kind: K8sPlatformNoServiceAccountToken
+title: Pods mount no Kubernetes API token
+description: >-
+  Every pod spec sets automountServiceAccountToken to false. Tenant workloads never call the Kubernetes API; on AKS
+  they reach Azure with workload identity, whose token is a separate projected volume the webhook adds (Project 4
+  M8 proved it without a Kubernetes token). The pod's field is required because it overrides the service account's
+  (D9).
+parameters: {}

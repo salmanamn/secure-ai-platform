@@ -1,0 +1,23 @@
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sPlatformAllowedImages
+metadata:
+  name: platform-allowed-images
+spec:
+  enforcementAction: deny
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: [Pod]
+      - apiGroups: [apps]
+        kinds: [Deployment, StatefulSet, DaemonSet, ReplicaSet]
+      - apiGroups: [batch]
+        kinds: [Job, CronJob]
+    excludedNamespaces:
+      - kube-system
+      - kube-public
+      - kube-node-lease
+      - gatekeeper-system
+  parameters:
+    registries:
+      - ghcr.io/salmanamn/
+      - mcr.microsoft.com/

@@ -1,0 +1,82 @@
+name: ci
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  UV_VERSION: "0.13.8"
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Install uv
+        run: pipx install "uv==${UV_VERSION}"
+      - name: The lockfile matches pyproject.toml
+        run: uv lock --check
+      - name: Sync
+        run: uv sync --locked
+      - name: ruff format
+        run: uv run --no-sync ruff format --check --diff .
+      - name: ruff check
+        run: uv run --no-sync ruff check --output-format=github .
+      - name: Templates and suite are generated from the rules (D5)
+        run: uv run --no-sync python scripts/build_policy.py --check
+      - name: Decisions index is generated from the headings (D13)
+        run: uv run --no-sync python scripts/decisions_index.py --check
+      - name: Shell scripts
+        run: uvx --from shellcheck-py==0.11.0.1 shellcheck scripts/*.sh
+      - name: Workflows (with shellcheck on every run block)
+        run: uvx --from actionlint-py==1.7.12.25 --with shellcheck-py==0.11.0.1 actionlint
+
+  unit:
+    name: unit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Install uv
+        run: pipx install "uv==${UV_VERSION}"
+      - name: Sync
+        run: uv sync --locked
+      - name: Unit tests (every policy case through regopy, the decisions drift test)
+        run: uv run pytest
+
+  policy:
+    name: policy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Install uv
+        run: pipx install "uv==${UV_VERSION}"
+      - name: Sync
+        run: uv sync --locked
+      - name: Install gator (pinned by sha256, D12)
+        run: |
+          GATOR_DIR="$RUNNER_TEMP/bin" ./scripts/install-gator.sh
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - name: gator verify (the same cases as the unit tests, D5)
+        run: gator verify policy/gatekeeper/suite.yaml
+      - name: Policy must fail (every mutation caught by regopy and gator)
+        run: uv run python scripts/policy_must_fail.py --require-gator

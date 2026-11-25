@@ -1,0 +1,34 @@
+[project]
+name = "secure-ai-platform"
+version = "0.1.0"
+description = "Capstone: a secure AI platform on AKS hosting the ticket-triage, voice and meeting-summarizer workloads"
+requires-python = ">=3.13,<3.14"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2,<10",
+    "ruff>=0.17,<0.18",
+    "pyyaml>=6.0,<7",
+    "regopy>=1.5,<2", # evaluates the Gatekeeper Rego in unit tests, without a cluster or gator (D5)
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["scripts"] # the tests import build_policy.py
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]
+"scripts/decisions_index.py" = ["RUF001"] # the en dash in "D1–D14" is intended (file copied from Project 5)
+"scripts/*.py" = ["S603", "S607"] # the scripts run kubectl, gator and pytest with fixed arguments

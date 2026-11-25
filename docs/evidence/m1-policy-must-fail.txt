@@ -1,0 +1,16 @@
+engines: pytest (regopy), gator
+OK   init-containers-not-judged: caught by pytest, gator
+OK   cronjobs-not-judged: caught by pytest, gator
+OK   deployments-not-judged: caught by pytest, gator
+OK   any-registry: caught by pytest, gator
+OK   latest-allowed: caught by pytest, gator
+OK   untagged-allowed: caught by pytest, gator
+OK   memory-limit-not-required: caught by pytest, gator
+OK   token-only-refused-when-true: caught by pytest, gator
+OK   owner-label-not-required: caught by pytest, gator
+OK   pod-security-enforce-only: caught by pytest, gator
+OK   pod-security-any-level: caught by pytest, gator
+OK   every-namespace-exempt: caught by pytest, gator
+OK   tenant-namespace-excluded: caught by pytest, gator
+OK   constraint-dry-run: caught by pytest
+14/14 mutations caught

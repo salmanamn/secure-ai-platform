@@ -1,0 +1,39 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: case-resources-init
+  namespace: triage
+  annotations:
+    test.platform.lab/expect: "container <migrate> needs resources.requests.cpu"
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: migrate
+          image: ghcr.io/salmanamn/voice-gateway:0.1.0
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          resources:
+            limits:
+              memory: 64Mi
+      containers:
+        - name: job
+          image: ghcr.io/salmanamn/voice-gateway:0.1.0
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 32Mi

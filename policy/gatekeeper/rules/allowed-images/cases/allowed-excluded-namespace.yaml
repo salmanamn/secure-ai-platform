@@ -1,0 +1,10 @@
+# kube-system is excluded by the constraint (and skipped by the webhook, D10): no rule applies there.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: case-image-kube-system
+  namespace: kube-system
+spec:
+  containers:
+    - name: app
+      image: docker.io/library/busybox:latest

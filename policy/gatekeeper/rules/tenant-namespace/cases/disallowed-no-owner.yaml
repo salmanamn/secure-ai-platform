@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: case-tenant-no-owner
+  annotations:
+    test.platform.lab/expect: "namespace <case-tenant-no-owner> needs the label <platform.lab/owner>"
+  labels:
+    platform.lab/tenant: case
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/audit: restricted

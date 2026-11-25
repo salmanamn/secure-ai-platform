@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: case-image-digest
+  namespace: triage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: case-image-digest
+  template:
+    metadata:
+      labels:
+        app: case-image-digest
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: app
+          image: mcr.microsoft.com/azure-functions/python:4-python3.13@sha256:0000000000000000000000000000000000000000000000000000000000000000
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 128Mi

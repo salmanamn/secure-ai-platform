@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: case-resources-no-limit
+  namespace: triage
+  annotations:
+    test.platform.lab/expect: "container <app> needs resources.limits.memory"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: case-resources-no-limit
+  template:
+    metadata:
+      labels:
+        app: case-resources-no-limit
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: app
+          image: ghcr.io/salmanamn/voice-gateway:0.1.0
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi

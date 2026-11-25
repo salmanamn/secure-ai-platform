@@ -1,0 +1,7 @@
+kind: K8sPlatformContainerResources
+title: Containers request CPU and memory and limit memory
+description: >-
+  Every container and init container sets requests.cpu, requests.memory and limits.memory, so the scheduler can place
+  it and a leak cannot take the node's memory. A CPU limit is not required: throttling hurts latency, and the
+  namespace's quota (M2) caps the total (D8).
+parameters: {}

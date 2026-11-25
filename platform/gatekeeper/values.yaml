@@ -1,0 +1,47 @@
+# Gatekeeper on the laptop cluster: Helm chart gatekeeper 3.23.1 (D5, D10). Every key exists in the chart's values.yaml.
+replicas: 1 # laptop; AKS uses the Azure Policy add-on instead (D5)
+auditInterval: 60
+constraintViolationsLimit: 20
+validatingWebhookFailurePolicy: Fail # tenants fail closed when Gatekeeper is down (D10)
+logDenies: true
+enableExternalData: false
+
+# The webhook only sees what the constraints judge (D10). The chart's default ('*') sends every resource, so with
+# Fail a stopped Gatekeeper also blocks cluster-scoped objects (Helm's own ClusterRoles) and node leases.
+# tests/unit/test_policy.py keeps this list equal to the constraints' kinds.
+validatingWebhookCustomRules:
+  - apiGroups: [""]
+    apiVersions: [v1]
+    operations: [CREATE, UPDATE]
+    resources: [namespaces, pods, pods/ephemeralcontainers]
+  - apiGroups: [apps]
+    apiVersions: [v1]
+    operations: [CREATE, UPDATE]
+    resources: [deployments, statefulsets, daemonsets, replicasets]
+  - apiGroups: [batch]
+    apiVersions: [v1]
+    operations: [CREATE, UPDATE]
+    resources: [jobs, cronjobs]
+
+controllerManager:
+  # The webhook skips kube-system entirely, so a Gatekeeper outage can never stop the cluster's own pods (D10).
+  # Gatekeeper accepts the ignore label only on namespaces exempted here; postInstall below adds the label.
+  exemptNamespaces: [kube-system]
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+
+audit:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+
+postInstall:
+  labelNamespace:
+    extraNamespaces: [kube-system]

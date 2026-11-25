@@ -1,0 +1,13 @@
+kind: K8sPlatformAllowedImages
+title: Images from the platform's registries, by tag or digest
+description: >-
+  Every container image (init and ephemeral ones included) starts with one of the allowed registry prefixes and names
+  a version: a digest, or a tag that is not "latest". A prefix ends with "/", so "ghcr.io/salmanamn/" does not admit
+  "ghcr.io/salmanamnx/" (D6).
+parameters:
+  registries:
+    type: array
+    description: Allowed image prefixes, each ending with "/".
+    items:
+      type: string
+      pattern: "/$"

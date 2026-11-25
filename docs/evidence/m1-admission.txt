@@ -1,0 +1,25 @@
+date: 2026-11-25T21:49Z
+context: aiplat
+server: v1.36.4
+gatekeeper: gatekeeper:v3.23.1
+OK   allowed-images/allowed-digest-deployment: admitted
+OK   allowed-images/allowed-excluded-namespace: admitted
+OK   allowed-images/allowed-tag: admitted
+OK   allowed-images/disallowed-cronjob: denied by platform-allowed-images
+OK   allowed-images/disallowed-init-container: denied by platform-allowed-images
+OK   allowed-images/disallowed-latest: denied by platform-allowed-images
+OK   allowed-images/disallowed-lookalike-prefix: denied by platform-allowed-images
+OK   allowed-images/disallowed-no-tag: denied by platform-allowed-images
+OK   allowed-images/disallowed-registry: denied by platform-allowed-images
+OK   container-resources/allowed-full: admitted
+OK   container-resources/disallowed-init-no-requests: denied by platform-container-resources
+OK   container-resources/disallowed-no-memory-limit: denied by platform-container-resources
+OK   no-sa-token/allowed-false: admitted
+OK   no-sa-token/disallowed-missing: denied by platform-no-sa-token
+OK   no-sa-token/disallowed-true: denied by platform-no-sa-token
+OK   tenant-namespace/allowed-platform: admitted
+OK   tenant-namespace/allowed-tenant: admitted
+OK   tenant-namespace/disallowed-no-owner: denied by platform-tenant-namespace
+OK   tenant-namespace/disallowed-psa-baseline: denied by platform-tenant-namespace
+OK   tenant-namespace/disallowed-psa-warn-missing: denied by platform-tenant-namespace
+20/20 cases as expected

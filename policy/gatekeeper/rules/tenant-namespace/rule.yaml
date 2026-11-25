@@ -1,0 +1,12 @@
+kind: K8sPlatformTenantNamespace
+title: Tenant namespaces carry their owner and Pod Security "restricted"
+description: >-
+  Every namespace that is not a platform namespace carries the labels platform.lab/tenant and platform.lab/owner, and
+  Pod Security Admission at "restricted" for enforce, warn and audit. Pod security itself is left to Pod Security
+  Admission, which AKS has too; Gatekeeper makes sure no tenant namespace opts out of it (D7).
+parameters:
+  platformNamespaces:
+    type: array
+    description: Namespaces run by the platform (Kubernetes, the CNI, Gatekeeper); exempt from this rule.
+    items:
+      type: string

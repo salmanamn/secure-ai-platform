@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: case-resources-ok
+  namespace: triage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: case-resources-ok
+  template:
+    metadata:
+      labels:
+        app: case-resources-ok
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: app
+          image: ghcr.io/salmanamn/voice-gateway:0.1.0
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
