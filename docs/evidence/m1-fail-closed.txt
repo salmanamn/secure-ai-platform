@@ -1,2 +1,4 @@
 gatekeeper-controller-manager scaled to 0:
-  kube-system: error: error validating "policy/gatekeeper/rules/allowed-images/cases/allowed-excluded-namespace.yaml": error validating data: failed to download openapi: Get "https://127.0.0.1:52098/openapi/v2?timeout=32s": dial tcp 127.0.0.1:52098: connect: connection refused; if you choose to ignore these errors, turn validation off with --validate=false
+  triage (compliant pod): failed calling webhook "validation.gatekeeper.sh"
+  kube-system: pod/case-image-kube-system created (server dry run)
+  cluster-scoped: clusterrole.rbac.authorization.k8s.io/fail-closed-probe
