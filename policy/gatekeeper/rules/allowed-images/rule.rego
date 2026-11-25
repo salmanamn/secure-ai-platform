@@ -27,7 +27,6 @@ pinned(image) if contains(last_segment(image), "@sha256:")
 pinned(image) if {
     tag := image_tag(image)
     tag != ""
-    tag != "latest"
 }
 
 # The part after the last "/": a registry port ("localhost:5000/app") is never read as a tag.
