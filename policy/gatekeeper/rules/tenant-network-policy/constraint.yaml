@@ -1,0 +1,22 @@
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sPlatformTenantNetworkPolicy
+metadata:
+  name: platform-tenant-network-policy
+spec:
+  enforcementAction: deny
+  match:
+    kinds:
+      - apiGroups: [networking.k8s.io]
+        kinds: [NetworkPolicy]
+    excludedNamespaces:
+      - default
+      - kube-system
+      - kube-public
+      - kube-node-lease
+      - gatekeeper-system
+  parameters:
+    egressNamespaces:
+      - kube-system
+    egressCIDRs:
+      triage:
+        - 192.168.49.1/32 # the laptop, seen from minikube's docker network: Project 3's emulators (M3)

@@ -1,0 +1,15 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: case-rb-voice-group
+  namespace: triage
+  annotations:
+    test.platform.lab/expect: "subject Group tenant:voice:admins is not a group tenant:triage:"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: platform-tenant-admin
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: tenant:voice:admins

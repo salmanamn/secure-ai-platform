@@ -22,6 +22,14 @@ validatingWebhookCustomRules:
     apiVersions: [v1]
     operations: [CREATE, UPDATE]
     resources: [jobs, cronjobs]
+  - apiGroups: [networking.k8s.io]
+    apiVersions: [v1]
+    operations: [CREATE, UPDATE]
+    resources: [networkpolicies]
+  - apiGroups: [rbac.authorization.k8s.io]
+    apiVersions: [v1]
+    operations: [CREATE, UPDATE]
+    resources: [rolebindings]
 
 controllerManager:
   # The webhook skips kube-system entirely, so a Gatekeeper outage can never stop the cluster's own pods (D10).

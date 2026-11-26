@@ -1,0 +1,108 @@
+# The platform's roles (D16). Our own ClusterRoles instead of the built-in admin/edit/view: every permission is
+# listed here, so the offline matrix test (tests/unit/test_platform.py) and the live one (scripts/check_tenancy.py)
+# check the same rules. Tenant groups get them per namespace through the generated RoleBindings; nothing here is
+# bound cluster-wide except the operators' group.
+#
+# What a tenant admin can't do, on purpose: read or write Secrets (Key Vault CSI on AKS, M5), write NetworkPolicies
+# or RBAC (the platform's deploy path applies them, Gatekeeper checks them, D18/D19), change quotas or limits, run
+# DaemonSets, or touch anything outside its namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: platform-tenant-admin
+  labels:
+    platform.lab/managed: "true"
+rules:
+  - apiGroups: [""]
+    resources: [pods, services, configmaps, persistentvolumeclaims]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [""]
+    resources: [pods/log]
+    verbs: [get, list, watch]
+  - apiGroups: [""]
+    resources: [pods/exec, pods/portforward, pods/attach]
+    verbs: [get, create]
+  - apiGroups: [""]
+    resources: [pods/ephemeralcontainers]
+    verbs: [get, update, patch]
+  - apiGroups: [""]
+    resources: [events, endpoints, serviceaccounts, resourcequotas, limitranges]
+    verbs: [get, list, watch]
+  - apiGroups: [apps]
+    resources: [deployments, statefulsets]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [apps]
+    resources: [deployments/scale, statefulsets/scale]
+    verbs: [get, update, patch]
+  - apiGroups: [apps]
+    resources: [replicasets]
+    verbs: [get, list, watch]
+  - apiGroups: [batch]
+    resources: [jobs, cronjobs]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [autoscaling]
+    resources: [horizontalpodautoscalers]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [policy]
+    resources: [poddisruptionbudgets]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [networking.k8s.io]
+    resources: [networkpolicies]
+    verbs: [get, list, watch]
+  - apiGroups: [rbac.authorization.k8s.io]
+    resources: [roles, rolebindings]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: platform-tenant-reader
+  labels:
+    platform.lab/managed: "true"
+rules:
+  - apiGroups: [""]
+    resources:
+      [
+        pods,
+        pods/log,
+        services,
+        configmaps,
+        persistentvolumeclaims,
+        events,
+        endpoints,
+        serviceaccounts,
+        resourcequotas,
+        limitranges,
+      ]
+    verbs: [get, list, watch]
+  - apiGroups: [apps]
+    resources: [deployments, statefulsets, replicasets]
+    verbs: [get, list, watch]
+  - apiGroups: [batch]
+    resources: [jobs, cronjobs]
+    verbs: [get, list, watch]
+  - apiGroups: [autoscaling]
+    resources: [horizontalpodautoscalers]
+    verbs: [get, list, watch]
+  - apiGroups: [policy]
+    resources: [poddisruptionbudgets]
+    verbs: [get, list, watch]
+  - apiGroups: [networking.k8s.io]
+    resources: [networkpolicies]
+    verbs: [get, list, watch]
+---
+# Platform operators: everything. On the laptop that is you (minikube's admin); on AKS an Entra group (M5).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: platform-operators
+  labels:
+    platform.lab/managed: "true"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: platform:operators

@@ -1,0 +1,51 @@
+# Who may do what (D16): checked offline against the RBAC objects (tests/unit/test_platform.py) and live with
+# `kubectl auth can-i --as` (scripts/check_tenancy.py). Resources are written as kubectl does: TYPE[.GROUP] or
+# TYPE/SUBRESOURCE; namespace null = cluster-scoped. Users are made-up names (impersonation needs a user).
+subjects:
+  triage-admin: { user: alice, groups: ["tenant:triage:admins"] }
+  triage-reader: { user: rhea, groups: ["tenant:triage:readers"] }
+  voice-admin: { user: victor, groups: ["tenant:voice:admins"] }
+  operator: { user: olga, groups: ["platform:operators"] }
+  triage-default-sa:
+    user: system:serviceaccount:triage:default
+    groups: ["system:serviceaccounts", "system:serviceaccounts:triage"]
+
+# [subject, verb, resource, namespace, allowed]
+checks:
+  - [triage-admin, create, deployments.apps, triage, true]
+  - [triage-admin, delete, pods, triage, true]
+  - [triage-admin, create, pods/exec, triage, true]
+  - [triage-admin, update, pods/ephemeralcontainers, triage, true]
+  - [triage-admin, get, resourcequotas, triage, true]
+  - [triage-admin, get, secrets, triage, false]
+  - [triage-admin, create, secrets, triage, false]
+  - [triage-admin, create, networkpolicies.networking.k8s.io, triage, false]
+  - [triage-admin, delete, networkpolicies.networking.k8s.io, triage, false]
+  - [
+      triage-admin,
+      create,
+      rolebindings.rbac.authorization.k8s.io,
+      triage,
+      false,
+    ]
+  - [triage-admin, update, resourcequotas, triage, false]
+  - [triage-admin, delete, limitranges, triage, false]
+  - [triage-admin, create, daemonsets.apps, triage, false]
+  - [triage-admin, create, deployments.apps, voice, false]
+  - [triage-admin, list, pods, voice, false]
+  - [triage-admin, create, namespaces, null, false]
+  - [triage-admin, list, nodes, null, false]
+  - [triage-reader, list, pods, triage, true]
+  - [triage-reader, get, pods/log, triage, true]
+  - [triage-reader, create, deployments.apps, triage, false]
+  - [triage-reader, create, pods/exec, triage, false]
+  - [triage-reader, get, secrets, triage, false]
+  - [triage-reader, list, pods, voice, false]
+  - [voice-admin, create, deployments.apps, voice, true]
+  - [voice-admin, list, pods, triage, false]
+  - [operator, create, deployments.apps, triage, true]
+  - [operator, get, secrets, voice, true]
+  - [operator, delete, networkpolicies.networking.k8s.io, triage, true]
+  - [operator, create, namespaces, null, true]
+  - [triage-default-sa, list, pods, triage, false]
+  - [triage-default-sa, get, configmaps, triage, false]

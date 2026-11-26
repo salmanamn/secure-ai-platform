@@ -3,7 +3,7 @@
 #
 # Usage: ./scripts/platform.sh gatekeeper   Gatekeeper from its Helm chart, version from versions.env
 #        ./scripts/platform.sh policy       the generated templates, then the constraints, then wait until enforced
-#        ./scripts/platform.sh tenants      the tenant namespaces (admitted by the namespace rule)
+#        ./scripts/platform.sh tenants      the platform roles, then each tenant's generated objects (D15, D16)
 #        ./scripts/platform.sh status       templates, constraints and their audit violations
 set -euo pipefail
 
@@ -62,7 +62,10 @@ case "${1:-}" in
     done
     ;;
   tenants)
-    kubectl apply -f platform/namespaces/tenants.yaml
+    kubectl apply -f platform/cluster/roles.yaml
+    for f in platform/generated/*.yaml; do
+      kubectl apply -f "$f"
+    done
     ;;
   status)
     kubectl get constrainttemplates
