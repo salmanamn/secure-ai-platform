@@ -10,7 +10,7 @@
 - Tenant images are built and published by their own repos (GHCR today; the platform's ACR on AKS, M5); this repo pins which versions it runs.
 
 ## D3 — Tenancy: one namespace per tenant, labelled with its owner
-- Namespaces `triage`, `voice`, `meetings` (`platform/namespaces/tenants.yaml`), each labelled `platform.lab/tenant`, `platform.lab/owner` and `platform.lab/source` (the repo). `platform.lab` is a label prefix of this lab, not a domain anyone owns.
+- Namespaces `triage`, `voice`, `meetings` (generated from `platform/tenants.yaml` since M2, D15), each labelled `platform.lab/tenant`, `platform.lab/owner` and `platform.lab/source` (the repo). `platform.lab` is a label prefix of this lab, not a domain anyone owns.
 - Platform namespaces (Kubernetes', the CNI's, Gatekeeper's) are listed in the namespace rule's parameters; every other namespace is a tenant's and must say so (D7).
 
 ## D4 — Rules judge the workload, not only the pod
@@ -21,7 +21,7 @@
 - Engine on the laptop: OPA Gatekeeper **3.23.1** (latest stable on 2026-11-25; 3.24.0 is in beta), Helm chart 3.23.1 (`platform/gatekeeper/values.yaml`).
 - One directory per rule (`policy/gatekeeper/rules/<rule>/`: `rule.yaml`, `rule.rego`, `constraint.yaml`, `cases/`). `scripts/build_policy.py` generates the ConstraintTemplates (`policy/gatekeeper/templates/`, Rego and libs embedded) and gator's test suite (`policy/gatekeeper/suite.yaml`); both are committed, never edited by hand, and a unit test fails when they are stale.
 - Rego is written in the syntax both Rego versions accept (`import future.keywords.*`, `contains` / `if`), so the same template loads in Gatekeeper's default (v0) mode and in any engine that only speaks v1.
-- Every case is checked three ways: **regopy** evaluates the generated templates' Rego in the unit tests (no cluster, no gator); **gator verify** runs the suite in CI; **`scripts/live_cases.py`** sends each case to a live cluster with `kubectl apply --dry-run=server` (all admission runs, nothing is stored) and requires a disallowed case to be denied by its own constraint alone. `scripts/policy_must_fail.py` weakens the policy 14 ways and requires the tests (and gator, in CI) to catch each.
+- Every case is checked three ways: **regopy** evaluates the generated templates' Rego in the unit tests (no cluster, no gator); **gator verify** runs the suite in CI; **`scripts/live_cases.py`** sends each case to a live cluster with `kubectl apply --dry-run=server` (all admission runs, nothing is stored) and requires a disallowed case to be denied by its own constraint alone. `scripts/policy_must_fail.py` weakens the policy and the tenancy objects one way at a time (14 mutations in M1, 27 since M2) and requires the tests (and gator, in CI, for the rules) to catch each.
 - **On AKS (proposed, decided in M5):** the Azure Policy add-on, which runs its own managed Gatekeeper, with these templates as custom policy definitions (`templateInfo.sourceType: Base64Encoded`, generated from the same files). Open Gatekeeper and the add-on are not run together; the add-on's Gatekeeper version and its support for `libs` are checked then.
 
 ## D6 — Images: from the platform's registries, with a version
@@ -42,7 +42,7 @@
 
 ## D10 — Admission fails closed for tenants, never for the cluster itself
 - The validating webhook's failure policy is `Fail`: when Gatekeeper is down, tenant workloads cannot be created or changed. With one replica on the laptop that is a real outage; it is the intended trade (AKS sizing in M5).
-- **The webhook only sees what the constraints judge** (`validatingWebhookCustomRules`): Pods (and `pods/ephemeralcontainers`, D6), Deployments, StatefulSets, DaemonSets, ReplicaSets, Jobs, CronJobs and Namespaces, CREATE and UPDATE. The chart's default sends every resource, cluster-scoped ones included, so with `Fail` a stopped Gatekeeper blocked everything outside the exempt namespaces — on 2026-11-26 it blocked Helm's own `ClusterRole` for the Gatekeeper upgrade (a deadlock: the fix could not be installed while the webhook waited for it), and it would block node leases in `kube-node-lease`. A unit test keeps the rules equal to the constraints' kinds and refuses wildcards.
+- **The webhook only sees what the constraints judge** (`validatingWebhookCustomRules`): Pods (and `pods/ephemeralcontainers`, D6), Deployments, StatefulSets, DaemonSets, ReplicaSets, Jobs, CronJobs and Namespaces, and since M2 NetworkPolicies and RoleBindings (D18, D19), CREATE and UPDATE. The chart's default sends every resource, cluster-scoped ones included, so with `Fail` a stopped Gatekeeper blocked everything outside the exempt namespaces — on 2026-11-26 it blocked Helm's own `ClusterRole` for the Gatekeeper upgrade (a deadlock: the fix could not be installed while the webhook waited for it), and it would block node leases in `kube-node-lease`. A unit test keeps the rules equal to the constraints' kinds and refuses wildcards.
 - `kube-system` carries `admission.gatekeeper.sh/ignore` (chart: `controllerManager.exemptNamespaces` plus `postInstall.labelNamespace.extraNamespaces`), so the webhook never sees the cluster's own pods and an outage cannot stop them; `gatekeeper-system` is exempt by the chart. The constraints exclude both again, which keeps them out of the audit too.
 
 ## D11 — The laptop cluster: minikube, Kubernetes 1.36, Calico
@@ -58,3 +58,30 @@
 ## D14 — CI and branch protection from the first milestone
 - `.github/workflows/ci.yml`: `lint` (ruff, generated files and decisions index current, shellcheck, actionlint), `unit` (pytest: every case through regopy, the decisions drift test), `policy` (gator verify, then `policy_must_fail.py --require-gator`). `permissions: contents: read`, no secrets.
 - `main` protected by `scripts/protect-main.sh` (Project 5's) with those three checks once they are green.
+
+## D15 — Tenancy objects are generated from one spec
+- `platform/tenants.yaml` lists the tenants (name, source repo, owner, quota) and the per-container limits; `scripts/build_platform.py` writes `platform/generated/<tenant>.yaml`: Namespace, ResourceQuota, LimitRange, two RoleBindings, two NetworkPolicies, in apply order, each labelled `platform.lab/managed=true`. Generated files are committed, never edited by hand, and a unit test (and CI's `lint`) fails when they are stale. They replace M1's hand-written `platform/namespaces/tenants.yaml`.
+- The platform's own objects obey the platform's policy: the unit tests run every Gatekeeper rule over every generated object and over `platform/cluster/roles.yaml`.
+
+## D16 — The platform's own tenant roles, not the built-in ones
+- `platform/cluster/roles.yaml`: `platform-tenant-admin` and `platform-tenant-reader`, bound per namespace to the groups `tenant:<tenant>:admins` and `tenant:<tenant>:readers`; `platform-operators` binds the group `platform:operators` to `cluster-admin`. On AKS the groups become Entra ID groups (M5).
+- Built-in `admin` is not used: it can write NetworkPolicies, Roles and RoleBindings and read Secrets, so a tenant could open its own network or grant itself more. The tenant admin runs its workloads (pods, deployments, statefulsets, jobs, cronjobs, services, configmaps, PVCs, HPAs, PDBs, exec, logs, port-forward, `kubectl debug`) and reads its quota, limits, network policies and bindings; it gets no Secrets (Key Vault CSI on AKS, M5), no DaemonSets, nothing outside its namespace. No role uses a wildcard (unit test).
+- `platform/checks/rbac-matrix.yaml` (31 rows) says who may do what. It is checked offline against these objects by a small RBAC evaluator in `tests/unit/test_platform.py`, and live with `kubectl auth can-i --as … --as-group …` (D20).
+
+## D17 — Quotas and limits: caps, no defaults
+- Each tenant's ResourceQuota caps `requests.cpu`, `requests.memory`, `limits.memory` and `pods` (laptop sizes; AKS sizes in M5) and sets `services.loadbalancers` and `services.nodeports` to 0: a tenant can't expose itself outside the cluster, and Kubernetes enforces that natively, so no Gatekeeper rule is needed for it.
+- The LimitRange sets only a per-container `max` (2 CPUs, 4 Gi). No `default` or `defaultRequest`: LimitRange defaults are filled in before validation, so they would satisfy `platform-container-resources` (D8) for a container that never asked for anything (unit test).
+
+## D18 — Network: every tenant starts closed; tenant policies stay inside the tenant
+- Each tenant namespace gets `platform-default-deny` (all ingress and egress) and `platform-allow-dns` (UDP and TCP 53 to `kube-dns` in `kube-system`). Nothing else is open, not even between pods of the same tenant: a tenant's own policies open what it needs.
+- Tenant admins can't write NetworkPolicies (D16); tenant policies (the voice chart's, for instance) arrive through the platform's deploy path and must pass `platform-tenant-network-policy`: peers are the namespace's own pods (podSelector only), a namespace in `egressNamespaces` named exactly by `kubernetes.io/metadata.name` (`kube-system`), or on egress an `ipBlock` whose CIDR is one of that tenant's `egressCIDRs` exactly (string equality: rego-cpp, the unit tests' engine, has no `net.cidr_contains`; exact matches are also the stricter rule). No rule without `from` or `to` (it would match everything).
+- `egressCIDRs` today: `triage: [192.168.49.1/32]`, the laptop as seen from minikube's docker network, for Project 3's emulators in M3. Other tenants get theirs when their milestone needs them.
+- The webhook now also sends NetworkPolicies and RoleBindings (D10's rules and test).
+
+## D19 — Tenant role bindings grant tenant roles to that tenant only
+- `platform-tenant-role-binding`: a RoleBinding in a tenant namespace refers to `platform-tenant-admin` or `platform-tenant-reader` (ClusterRoles only, no namespaced Roles) and binds only groups `tenant:<namespace>:…` or service accounts of the same namespace; no users. The platform's generated bindings pass it (D15); a mistaken binding by an operator does not.
+- Cluster-wide bindings (ClusterRoleBindings) stay outside the webhook's scope (D10: cluster-scoped objects are never blocked by a stopped Gatekeeper); the RBAC matrix checks that no tenant group holds a cluster-wide permission.
+
+## D20 — The live tenancy check
+- `scripts/check_tenancy.py` runs four sections and writes one evidence file: **rbac** (every matrix row through `kubectl auth can-i` with impersonation), **admission** (`platform/checks/admission/`: a pod within limits admitted; a container over the LimitRange max, a pod over the tenant's CPU quota, a NodePort and a LoadBalancer Service refused by the quota or limits and not by Gatekeeper), **network** (probe pods in `triage` and `voice`; round 1 = the baseline, round 2 after `platform/checks/netpol-probe-allow.yaml` opens one flow in `triage`), **debug** (an ephemeral container through `kubectl debug --profile=restricted`: from docker.io refused by `platform-allowed-images`, from the allowed registry admitted; D6).
+- Probe image: `mcr.microsoft.com/azurelinux/base/python:3.12.16-2-azl3.0.20261120` (Azure Linux 3.0, from an allowed registry, Python for the socket checks and `http.server`), run as user 65532 with Pod Security `restricted` settings and a read-only root filesystem. The unit tests run every Gatekeeper rule over the probe pods and the check objects, so a refusal in the live check can't come from the platform's own policy by mistake.

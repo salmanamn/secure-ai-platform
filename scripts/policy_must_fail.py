@@ -3,10 +3,14 @@
 Each mutation removes one promise the policy makes: Deployments, CronJobs and init containers are judged; images come
 from the allowed registries with a version that is not latest; containers request CPU and memory and limit memory;
 pods mount no API token; tenant namespaces carry their owner and Pod Security "restricted" for all three modes; only
-platform namespaces are exempt; tenant namespaces are not excluded; constraints deny.
+platform namespaces are exempt; tenant namespaces are not excluded; constraints deny (M1). Tenant network policies
+stay inside the tenant; tenant role bindings grant the tenant roles to that tenant only; the tenant admin role reads
+no Secrets and writes no network policies; every tenant starts closed, with no LoadBalancer or NodePort Services and
+no default resources (M2).
 
 The script works on a temporary copy of the repository (tracked and new files, not ignored ones), regenerates the
-templates there (scripts/build_policy.py) and runs the case tests with regopy, and with gator when it is on PATH.
+templates and the tenancy objects there (scripts/build_policy.py, scripts/build_platform.py), and runs the policy and
+platform tests with regopy, and the gator suite when gator is on PATH.
 A mutation must turn every engine it names red. Exit 1 when a mutation survives (add a case), when its anchor text is
 not in the file exactly once (update the mutation together with the policy), or when the clean copy fails.
 
@@ -24,6 +28,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 LIB = "policy/gatekeeper/lib/workload.rego"
 RULES = "policy/gatekeeper/rules"
+NETPOL = f"{RULES}/tenant-network-policy/rule.rego"
+BINDING = f"{RULES}/tenant-role-binding/rule.rego"
+ROLES = "platform/cluster/roles.yaml"
+BUILD = "scripts/build_platform.py"
 
 
 @dataclass(frozen=True)
@@ -122,6 +130,69 @@ MUTATIONS = [
         "enforcementAction: dryrun",
         engines=("pytest",),  # gator reports violations whatever the action; the unit test checks the action
     ),
+    # M2: the two tenancy rules
+    Mutation("ingress-from-other-namespaces", NETPOL, "    not same_namespace_pods(peer)\n", "    false\n"),
+    Mutation("egress-rule-without-peers", NETPOL, '    count(object.get(rule, "to", [])) == 0\n', "    false\n"),
+    Mutation(
+        "egress-to-any-namespace",
+        NETPOL,
+        "    peer.namespaceSelector.matchLabels[name_key] in input.parameters.egressNamespaces\n",
+        "",
+    ),
+    Mutation("egress-to-any-range", NETPOL, "    peer.ipBlock.cidr in tenant_cidrs\n", ""),
+    Mutation(
+        "ranges-shared-between-tenants",
+        NETPOL,
+        'tenant_cidrs := object.get(object.get(input.parameters, "egressCIDRs", {}), namespace, [])',
+        "tenant_cidrs := [c | some cs in input.parameters.egressCIDRs; some c in cs]",
+    ),
+    Mutation("binding-any-cluster-role", BINDING, "    ref.name in input.parameters.allowedClusterRoles\n", ""),
+    Mutation(
+        "binding-any-tenant-group",
+        BINDING,
+        '    startswith(subject.name, sprintf("tenant:%v:", [namespace]))\n',
+        '    startswith(subject.name, "tenant:")\n',
+    ),
+    # M2: the tenancy objects (checked by the unit tests only: gator never sees them)
+    Mutation(
+        "tenant-admin-reads-secrets",
+        ROLES,
+        "    resources: [pods, services, configmaps, persistentvolumeclaims]\n",
+        "    resources: [pods, services, configmaps, persistentvolumeclaims, secrets]\n",
+        engines=("pytest",),
+    ),
+    Mutation(
+        "tenant-admin-writes-network-policies",
+        ROLES,
+        "    verbs: [get, list, watch, create, update, patch, delete]\n"
+        "  - apiGroups: [networking.k8s.io]\n    resources: [networkpolicies]\n    verbs: [get, list, watch]\n",
+        "    verbs: [get, list, watch, create, update, patch, delete]\n"
+        "  - apiGroups: [networking.k8s.io]\n    resources: [networkpolicies]\n"
+        "    verbs: [get, list, watch, create, update, patch, delete]\n",
+        engines=("pytest",),
+    ),
+    Mutation("default-deny-dropped", BUILD, "        default_deny(tenant),\n", "", engines=("pytest",)),
+    Mutation(
+        "limit-range-defaults",
+        BUILD,
+        '"spec": {"limits": [{"type": "Container", "max": maximum}]},',
+        '"spec": {"limits": [{"type": "Container", "max": maximum, "default": maximum}]},',
+        engines=("pytest",),
+    ),
+    Mutation(
+        "node-ports-allowed",
+        BUILD,
+        'hard |= {"services.loadbalancers": "0", "services.nodeports": "0"}',
+        'hard |= {"services.loadbalancers": "0"}',
+        engines=("pytest",),
+    ),
+    Mutation(
+        "tenant-groups-cross-namespaces",
+        BUILD,
+        "f\"tenant:{tenant['name']}:{group}\"",
+        'f"tenant:triage:{group}"',
+        engines=("pytest",),
+    ),
 ]
 
 
@@ -149,12 +220,14 @@ def copy_repo(target: Path) -> None:
 
 def run_engines(workdir: Path, gator: str | None) -> dict[str, bool]:
     """Regenerate the templates, then run each engine; True means the engine passed (all cases as expected)."""
-    build = subprocess.run([sys.executable, "scripts/build_policy.py"], cwd=workdir, capture_output=True, text=True)
-    if build.returncode != 0:
-        return {"build": False}
+    for script in ("scripts/build_policy.py", "scripts/build_platform.py"):
+        build = subprocess.run([sys.executable, script], cwd=workdir, capture_output=True, text=True)
+        if build.returncode != 0:
+            return {"build": False}
     results = {}
+    tests = ["tests/unit/test_policy.py", "tests/unit/test_platform.py"]
     pytest = subprocess.run(
-        [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", "tests/unit/test_policy.py"],
+        [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", *tests],
         cwd=workdir,
         capture_output=True,
         text=True,

@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: check-over-maximum
+  namespace: voice
+  annotations:
+    test.platform.lab/expect: "maximum memory usage per Container is 4Gi"
+spec:
+  automountServiceAccountToken: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: app
+      image: mcr.microsoft.com/azurelinux/base/python:3.12.16-2-azl3.0.20261120
+      command: ["python3", "-c", "pass"]
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: [ALL]
+      resources:
+        requests:
+          cpu: 100m
+          memory: 1Gi
+        limits:
+          memory: 5Gi

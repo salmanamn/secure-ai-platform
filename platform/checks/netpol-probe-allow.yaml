@@ -1,0 +1,37 @@
+# Applied by scripts/check_tenancy.py between its two network rounds: a tenant's own allow rules (they pass
+# platform-tenant-network-policy) open one flow inside triage, client -> server on 8080, and nothing else (D18).
+# Both ends need a rule: the platform's default deny covers egress too, so the server's ingress rule alone would
+# not let the client out.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: check-server-from-client
+  namespace: triage
+spec:
+  podSelector:
+    matchLabels:
+      platform.lab/probe: server
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              platform.lab/probe: client
+      ports: [{ protocol: TCP, port: 8080 }]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: check-client-to-server
+  namespace: triage
+spec:
+  podSelector:
+    matchLabels:
+      platform.lab/probe: client
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              platform.lab/probe: server
+      ports: [{ protocol: TCP, port: 8080 }]

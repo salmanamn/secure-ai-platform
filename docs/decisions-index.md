@@ -4,7 +4,7 @@ Generated from the headings of [decisions.md](decisions.md) by `scripts/decision
 hand. `tests/unit/test_decisions.py` fails when this file and the headings disagree, or when a number is
 missing or used twice.
 
-14 decisions (D1–D14): 0 updated by a later one, 0 with a status of
+20 decisions (D1–D20): 0 updated by a later one, 0 with a status of
 their own (open questions, workarounds); the rest accepted as written.
 
 | # | Decision | Status |
@@ -23,3 +23,9 @@ their own (open questions, workarounds); the rest accepted as written.
 | [D12](decisions.md#d12--tool-versions-in-one-file-gator-pinned-by-checksum) | Tool versions in one file; gator pinned by checksum | accepted |
 | [D13](decisions.md#d13--a-decisions-index-from-day-one) | A decisions index from day one | accepted |
 | [D14](decisions.md#d14--ci-and-branch-protection-from-the-first-milestone) | CI and branch protection from the first milestone | accepted |
+| [D15](decisions.md#d15--tenancy-objects-are-generated-from-one-spec) | Tenancy objects are generated from one spec | accepted |
+| [D16](decisions.md#d16--the-platforms-own-tenant-roles-not-the-built-in-ones) | The platform's own tenant roles, not the built-in ones | accepted |
+| [D17](decisions.md#d17--quotas-and-limits-caps-no-defaults) | Quotas and limits: caps, no defaults | accepted |
+| [D18](decisions.md#d18--network-every-tenant-starts-closed-tenant-policies-stay-inside-the-tenant) | Network: every tenant starts closed; tenant policies stay inside the tenant | accepted |
+| [D19](decisions.md#d19--tenant-role-bindings-grant-tenant-roles-to-that-tenant-only) | Tenant role bindings grant tenant roles to that tenant only | accepted |
+| [D20](decisions.md#d20--the-live-tenancy-check) | The live tenancy check | accepted |

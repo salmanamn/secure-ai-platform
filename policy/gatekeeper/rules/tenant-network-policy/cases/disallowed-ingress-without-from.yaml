@@ -1,0 +1,12 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: case-np-ingress-anyone
+  namespace: triage
+  annotations:
+    test.platform.lab/expect: "an ingress rule without from admits every source"
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress:
+    - ports: [{ protocol: TCP, port: 8080 }]

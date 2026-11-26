@@ -1,0 +1,20 @@
+kind: K8sPlatformTenantNetworkPolicy
+title: Tenant network policies stay inside the tenant
+description: >-
+  A NetworkPolicy in a tenant namespace may name pods of its own namespace, the namespaces listed in egressNamespaces
+  (kube-system, for DNS), and on egress only the address ranges listed for that tenant, written exactly as listed.
+  It may not admit traffic from other namespaces or addresses, and no rule may leave out its peers, because a rule
+  without "from" or "to" matches every source or destination (D18).
+parameters:
+  egressNamespaces:
+    type: array
+    description: Namespaces any tenant may reach (by kubernetes.io/metadata.name).
+    items:
+      type: string
+  egressCIDRs:
+    type: object
+    description: Per tenant namespace, the address ranges its pods may reach (exact strings).
+    additionalProperties:
+      type: array
+      items:
+        type: string

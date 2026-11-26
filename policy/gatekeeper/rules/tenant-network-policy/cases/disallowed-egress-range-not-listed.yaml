@@ -1,0 +1,15 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: case-np-any-range
+  namespace: triage
+  annotations:
+    test.platform.lab/expect: "is not this tenant's pods, an allowed namespace"
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports: [{ protocol: TCP, port: 443 }]

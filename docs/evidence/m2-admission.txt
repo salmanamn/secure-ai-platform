@@ -1,0 +1,44 @@
+date: 2026-11-26T22:34Z
+context: aiplat
+server: v1.36.4
+gatekeeper: gatekeeper:v3.23.1
+OK   allowed-images/allowed-digest-deployment: admitted
+OK   allowed-images/allowed-excluded-namespace: admitted
+OK   allowed-images/allowed-tag: admitted
+OK   allowed-images/disallowed-cronjob: denied by platform-allowed-images
+OK   allowed-images/disallowed-init-container: denied by platform-allowed-images
+OK   allowed-images/disallowed-latest: denied by platform-allowed-images
+OK   allowed-images/disallowed-lookalike-prefix: denied by platform-allowed-images
+OK   allowed-images/disallowed-no-tag: denied by platform-allowed-images
+OK   allowed-images/disallowed-registry: denied by platform-allowed-images
+OK   container-resources/allowed-full: admitted
+OK   container-resources/disallowed-init-no-requests: denied by platform-container-resources
+OK   container-resources/disallowed-no-memory-limit: denied by platform-container-resources
+OK   no-sa-token/allowed-false: admitted
+OK   no-sa-token/disallowed-missing: denied by platform-no-sa-token
+OK   no-sa-token/disallowed-true: denied by platform-no-sa-token
+OK   tenant-namespace/allowed-platform: admitted
+OK   tenant-namespace/allowed-tenant: admitted
+OK   tenant-namespace/disallowed-no-owner: denied by platform-tenant-namespace
+OK   tenant-namespace/disallowed-psa-baseline: denied by platform-tenant-namespace
+OK   tenant-namespace/disallowed-psa-warn-missing: denied by platform-tenant-namespace
+OK   tenant-network-policy/allowed-default-deny: admitted
+OK   tenant-network-policy/allowed-dns: admitted
+OK   tenant-network-policy/allowed-same-namespace: admitted
+OK   tenant-network-policy/allowed-tenant-range: admitted
+OK   tenant-network-policy/disallowed-egress-all-namespaces: denied by platform-tenant-network-policy
+OK   tenant-network-policy/disallowed-egress-other-tenant: denied by platform-tenant-network-policy
+OK   tenant-network-policy/disallowed-egress-other-tenants-range: denied by platform-tenant-network-policy
+OK   tenant-network-policy/disallowed-egress-range-not-listed: denied by platform-tenant-network-policy
+OK   tenant-network-policy/disallowed-egress-without-to: denied by platform-tenant-network-policy
+OK   tenant-network-policy/disallowed-ingress-from-addresses: denied by platform-tenant-network-policy
+OK   tenant-network-policy/disallowed-ingress-other-namespace: denied by platform-tenant-network-policy
+OK   tenant-network-policy/disallowed-ingress-without-from: denied by platform-tenant-network-policy
+OK   tenant-role-binding/allowed-own-service-account: admitted
+OK   tenant-role-binding/allowed-tenant-group: admitted
+OK   tenant-role-binding/disallowed-cluster-admin: denied by platform-tenant-role-binding
+OK   tenant-role-binding/disallowed-namespaced-role: denied by platform-tenant-role-binding
+OK   tenant-role-binding/disallowed-other-namespace-sa: denied by platform-tenant-role-binding
+OK   tenant-role-binding/disallowed-other-tenant-group: denied by platform-tenant-role-binding
+OK   tenant-role-binding/disallowed-user: denied by platform-tenant-role-binding
+39/39 cases as expected

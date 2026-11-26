@@ -1,0 +1,35 @@
+# The tenants and what the platform gives each of them (D15). scripts/build_platform.py turns this file into
+# platform/generated/: the cluster roles, and per tenant its namespace, quota, limits, role bindings and baseline
+# network policies. Edit this file, never the generated ones.
+#
+# Quotas are the laptop's (one 4-CPU, 6 GB node); AKS gets its own sizes in M5. A ResourceQuota counts requests
+# and memory limits; LoadBalancer and NodePort Services are not allowed at all (D17).
+limits: # per container, every tenant (LimitRange max; no defaults, D17)
+  cpu: "2"
+  memory: 4Gi
+
+tenants:
+  - name: triage
+    source: ticket-triage-agent
+    owner: salmanamn
+    quota:
+      requests.cpu: "1"
+      requests.memory: 2Gi
+      limits.memory: 3Gi
+      pods: "20"
+  - name: voice
+    source: arabic-voice-assistant
+    owner: salmanamn
+    quota:
+      requests.cpu: "2"
+      requests.memory: 4Gi
+      limits.memory: 6Gi
+      pods: "20"
+  - name: meetings
+    source: meeting-summarizer
+    owner: salmanamn
+    quota:
+      requests.cpu: "1"
+      requests.memory: 3Gi
+      limits.memory: 4Gi
+      pods: "20"

@@ -113,3 +113,100 @@ tests:
     assertions:
     - violations: 'yes'
       message: 'needs <pod-security.kubernetes.io/warn: restricted>'
+- name: tenant-network-policy
+  template: templates/k8splatformtenantnetworkpolicy.yaml
+  constraint: rules/tenant-network-policy/constraint.yaml
+  cases:
+  - name: allowed-default-deny
+    object: rules/tenant-network-policy/cases/allowed-default-deny.yaml
+    assertions:
+    - violations: 'no'
+  - name: allowed-dns
+    object: rules/tenant-network-policy/cases/allowed-dns.yaml
+    assertions:
+    - violations: 'no'
+  - name: allowed-same-namespace
+    object: rules/tenant-network-policy/cases/allowed-same-namespace.yaml
+    assertions:
+    - violations: 'no'
+  - name: allowed-tenant-range
+    object: rules/tenant-network-policy/cases/allowed-tenant-range.yaml
+    assertions:
+    - violations: 'no'
+  - name: disallowed-egress-all-namespaces
+    object: rules/tenant-network-policy/cases/disallowed-egress-all-namespaces.yaml
+    assertions:
+    - violations: 'yes'
+      message: is not this tenant's pods, an allowed namespace
+  - name: disallowed-egress-other-tenant
+    object: rules/tenant-network-policy/cases/disallowed-egress-other-tenant.yaml
+    assertions:
+    - violations: 'yes'
+      message: is not this tenant's pods, an allowed namespace
+  - name: disallowed-egress-other-tenants-range
+    object: rules/tenant-network-policy/cases/disallowed-egress-other-tenants-range.yaml
+    assertions:
+    - violations: 'yes'
+      message: is not this tenant's pods, an allowed namespace
+  - name: disallowed-egress-range-not-listed
+    object: rules/tenant-network-policy/cases/disallowed-egress-range-not-listed.yaml
+    assertions:
+    - violations: 'yes'
+      message: is not this tenant's pods, an allowed namespace
+  - name: disallowed-egress-without-to
+    object: rules/tenant-network-policy/cases/disallowed-egress-without-to.yaml
+    assertions:
+    - violations: 'yes'
+      message: an egress rule without to reaches every destination
+  - name: disallowed-ingress-from-addresses
+    object: rules/tenant-network-policy/cases/disallowed-ingress-from-addresses.yaml
+    assertions:
+    - violations: 'yes'
+      message: ingress only from pods of namespace <triage>
+  - name: disallowed-ingress-other-namespace
+    object: rules/tenant-network-policy/cases/disallowed-ingress-other-namespace.yaml
+    assertions:
+    - violations: 'yes'
+      message: ingress only from pods of namespace <triage>
+  - name: disallowed-ingress-without-from
+    object: rules/tenant-network-policy/cases/disallowed-ingress-without-from.yaml
+    assertions:
+    - violations: 'yes'
+      message: an ingress rule without from admits every source
+- name: tenant-role-binding
+  template: templates/k8splatformtenantrolebinding.yaml
+  constraint: rules/tenant-role-binding/constraint.yaml
+  cases:
+  - name: allowed-own-service-account
+    object: rules/tenant-role-binding/cases/allowed-own-service-account.yaml
+    assertions:
+    - violations: 'no'
+  - name: allowed-tenant-group
+    object: rules/tenant-role-binding/cases/allowed-tenant-group.yaml
+    assertions:
+    - violations: 'no'
+  - name: disallowed-cluster-admin
+    object: rules/tenant-role-binding/cases/disallowed-cluster-admin.yaml
+    assertions:
+    - violations: 'yes'
+      message: roleRef ClusterRole cluster-admin is not one of the ClusterRoles
+  - name: disallowed-namespaced-role
+    object: rules/tenant-role-binding/cases/disallowed-namespaced-role.yaml
+    assertions:
+    - violations: 'yes'
+      message: roleRef Role anything is not one of the ClusterRoles
+  - name: disallowed-other-namespace-sa
+    object: rules/tenant-role-binding/cases/disallowed-other-namespace-sa.yaml
+    assertions:
+    - violations: 'yes'
+      message: subject ServiceAccount reporter is not a group tenant:triage:... or a service account
+  - name: disallowed-other-tenant-group
+    object: rules/tenant-role-binding/cases/disallowed-other-tenant-group.yaml
+    assertions:
+    - violations: 'yes'
+      message: 'subject Group tenant:voice:admins is not a group tenant:triage:'
+  - name: disallowed-user
+    object: rules/tenant-role-binding/cases/disallowed-user.yaml
+    assertions:
+    - violations: 'yes'
+      message: subject User mallory is not a group

@@ -1,0 +1,12 @@
+kind: K8sPlatformTenantRoleBinding
+title: Tenant role bindings grant the platform's tenant roles to that tenant only
+description: >-
+  A RoleBinding in a tenant namespace refers to one of the allowed ClusterRoles and binds only that tenant's groups
+  (tenant:<namespace>:...) or service accounts of the same namespace: no users, no other tenant's groups, no
+  namespaced Roles that the platform didn't write (D19).
+parameters:
+  allowedClusterRoles:
+    type: array
+    description: ClusterRoles a tenant RoleBinding may refer to.
+    items:
+      type: string

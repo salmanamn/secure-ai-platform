@@ -75,7 +75,7 @@ def test_generated_files_are_up_to_date():
 
 def test_every_rule_has_both_kinds_of_case_and_expectations():
     assert build_policy.problems(RULES) == []
-    assert len(RULES) == 4
+    assert len(RULES) == 6
 
 
 def test_every_constraint_denies():
@@ -89,13 +89,10 @@ def test_registry_prefixes_end_with_a_slash():
     assert registries and all(r.endswith("/") for r in registries)
 
 
-def test_tenant_namespaces_on_the_platform_are_compliant():
-    """platform/namespaces/tenants.yaml passes the namespace rule (it is applied after the constraints, M1 Part 2)."""
-    (rule,) = [r for r in RULES if r.kind == "K8sPlatformTenantNamespace"]
-    tenants = list(yaml.safe_load_all((build_policy.ROOT / "platform/namespaces/tenants.yaml").read_text()))
-    assert [t["metadata"]["name"] for t in tenants] == ["triage", "voice", "meetings"]
-    for namespace in tenants:
-        assert violations(rule, namespace) == []
+def plural(kind: str) -> str:
+    """The resource name of a kind, as the webhook rules spell it: Pod -> pods, NetworkPolicy -> networkpolicies."""
+    name = kind.lower()
+    return f"{name[:-1]}ies" if name.endswith("y") else f"{name}s"
 
 
 def test_webhook_sees_exactly_what_the_constraints_judge():
@@ -111,7 +108,7 @@ def test_webhook_sees_exactly_what_the_constraints_judge():
     }
     assert not any("*" in g or "*" in res for g, res in sent)
     judged = {
-        (group, f"{kind.lower()}s")
+        (group, plural(kind))
         for rule in RULES
         for k in rule.constraint["spec"]["match"]["kinds"]
         for group in k["apiGroups"]

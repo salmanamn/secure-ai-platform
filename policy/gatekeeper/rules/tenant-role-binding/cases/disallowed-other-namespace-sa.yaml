@@ -1,0 +1,15 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: case-rb-voice-sa
+  namespace: triage
+  annotations:
+    test.platform.lab/expect: "subject ServiceAccount reporter is not a group tenant:triage:... or a service account"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: platform-tenant-reader
+subjects:
+  - kind: ServiceAccount
+    name: reporter
+    namespace: voice

@@ -1,0 +1,15 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: case-rb-user
+  namespace: triage
+  annotations:
+    test.platform.lab/expect: "subject User mallory is not a group"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: platform-tenant-admin
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: mallory
