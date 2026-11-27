@@ -7,6 +7,8 @@ constraint named, its expectation matched), so a case that fails for the wrong r
 
 uv run python scripts/live_cases.py [--context NAME] [--evidence docs/evidence/m1-admission.txt]
 
+Exit 2, with nothing written, when the API server is not ready before the run or stopped answering during it (D21).
+
 The evidence file names cases and constraints only, never images or messages (a Project 4 lesson: no `@` in evidence).
 """
 
@@ -18,6 +20,7 @@ import subprocess
 import sys
 
 import build_policy
+import cluster_ready
 
 PLATFORM_CONSTRAINT = re.compile(r"\[(platform-[a-z-]+)\]")
 
@@ -72,6 +75,9 @@ def main() -> int:
     parser.add_argument("--context", help="kubectl context (default: the current one)")
     parser.add_argument("--evidence", help="also write the result to this file")
     args = parser.parse_args()
+    if refusal := cluster_ready.refuse_start(kubectl, args.context):
+        print(refusal)
+        return 2
 
     lines = describe(args.context)
     failures = 0
@@ -84,6 +90,9 @@ def main() -> int:
             lines.append(f"{'OK  ' if ok else 'FAIL'} {rule.directory.name}/{case.name}: {what}")
     lines.append(f"{total - failures}/{total} cases as expected" if not failures else f"FAIL {failures} of {total}")
     print("\n".join(lines))
+    if refusal := cluster_ready.refuse_evidence(kubectl, args.context):
+        print(refusal)
+        return 2
     if args.evidence:
         with open(args.evidence, "w", encoding="utf-8") as fh:
             fh.write("\n".join(lines) + "\n")

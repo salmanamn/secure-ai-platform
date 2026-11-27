@@ -200,7 +200,9 @@ def test_a_section_that_stops_still_writes_its_failure(monkeypatch, tmp_path):
 
     monkeypatch.setattr(check_tenancy, "SECTIONS", {"network": stop})
     monkeypatch.setattr(
-        check_tenancy, "kubectl", lambda *a, **k: check_tenancy.subprocess.CompletedProcess(a, 0, "", "")
+        check_tenancy,
+        "kubectl",
+        lambda *a, **k: check_tenancy.subprocess.CompletedProcess(a, 0, "ok" if "/readyz" in a else "", ""),
     )
     monkeypatch.setattr(check_tenancy, "cleanup", lambda context: None)
     evidence = tmp_path / "e.txt"

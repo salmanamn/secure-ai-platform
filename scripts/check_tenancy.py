@@ -13,7 +13,8 @@ Sections (all by default; --only rbac|admission|network|debug):
 - debug      `kubectl debug --profile=restricted` adds an ephemeral container to a probe pod: from docker.io it must
              be refused by platform-allowed-images, from the allowed registry admitted (D6)
 
-Every line: OK or FAIL, what, expected, seen. Exit 1 when any line is FAIL. Probe pods and the allow policy are
+Every line: OK or FAIL, what, expected, seen. Exit 1 when any line is FAIL; exit 2, with no evidence written, when the
+API server is not ready before the run or stopped answering during it (D21). Probe pods and the allow policy are
 deleted at the end. Evidence names users, namespaces and flows only (no `@`).
 """
 
@@ -25,6 +26,7 @@ import sys
 import time
 from pathlib import Path
 
+import cluster_ready
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -247,6 +249,9 @@ def main() -> int:
     parser.add_argument("--only", choices=sorted(SECTIONS), help="run one section")
     parser.add_argument("--evidence", type=Path, help="also write the result to this file")
     args = parser.parse_args()
+    if refusal := cluster_ready.refuse_start(kubectl, args.context):
+        print(refusal)
+        return 2
     current = kubectl(args.context, "config", "current-context").stdout.strip()
     lines = [f"date: {datetime.datetime.now(datetime.UTC):%Y-%m-%dT%H:%MZ}", f"context: {args.context or current}"]
     names = [args.only] if args.only else list(SECTIONS)
@@ -277,6 +282,9 @@ def main() -> int:
     )
     lines.append(summary)
     print(summary)
+    if refusal := cluster_ready.refuse_evidence(kubectl, args.context):
+        print(refusal)
+        return 2
     if args.evidence:
         args.evidence.write_text("\n".join(lines) + "\n", encoding="utf-8")
         print(f"wrote {args.evidence}")

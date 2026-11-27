@@ -27,7 +27,8 @@
 ## D6 — Images: from the platform's registries, with a version
 - Every image starts with an allowed prefix (now `ghcr.io/salmanamn/` and `mcr.microsoft.com/`; the platform's ACR joins in M5) and names a version: a digest, or a tag other than `latest`. The tag is read from the part after the last `/`, so a registry port is never taken for a tag.
 - Prefixes end with `/` (schema `pattern` and a unit test), so `ghcr.io/salmanamn/` does not admit `ghcr.io/salmanamnx/`.
-- Not proven yet: ephemeral containers. They are in the rule, but there is no case: the API server refuses them on create, and `kubectl debug` goes through the `pods/ephemeralcontainers` subresource. M2 tries `kubectl debug` on the cluster.
+- Ephemeral containers are in the rule (D4's `all_containers`) and reach Gatekeeper through the `pods/ephemeralcontainers` subresource (D10). They have no case file, because the API server refuses them on create; `scripts/check_tenancy.py`'s debug section checks them live (D20).
+- **Status:** proven on the cluster (M2, `docs/evidence/m2-tenancy.txt`): `kubectl debug --profile=restricted` with a docker.io image is refused by `platform-allowed-images`, with an MCR image admitted.
 
 ## D7 — Pod security is Pod Security Admission at "restricted"; Gatekeeper makes it mandatory
 - Pod-level security (privileged, host namespaces and paths, capabilities, non-root, seccomp, privilege escalation) is Kubernetes' built-in Pod Security Admission at `restricted`, which minikube and AKS both run, rather than a second copy of the same checks in Rego.
@@ -71,6 +72,7 @@
 ## D17 — Quotas and limits: caps, no defaults
 - Each tenant's ResourceQuota caps `requests.cpu`, `requests.memory`, `limits.memory` and `pods` (laptop sizes; AKS sizes in M5) and sets `services.loadbalancers` and `services.nodeports` to 0: a tenant can't expose itself outside the cluster, and Kubernetes enforces that natively, so no Gatekeeper rule is needed for it.
 - The LimitRange sets only a per-container `max` (2 CPUs, 4 Gi). No `default` or `defaultRequest`: LimitRange defaults are filled in before validation, so they would satisfy `platform-container-resources` (D8) for a container that never asked for anything (unit test).
+- **Status:** proven on the cluster (M2, `docs/evidence/m2-tenancy.txt`): Kubernetes 1.36 checks both the ResourceQuota and the LimitRange on `kubectl apply --dry-run=server`, so the five admission cases refuse or admit without creating anything.
 
 ## D18 — Network: every tenant starts closed; tenant policies stay inside the tenant
 - Each tenant namespace gets `platform-default-deny` (all ingress and egress) and `platform-allow-dns` (UDP and TCP 53 to `kube-dns` in `kube-system`). Nothing else is open, not even between pods of the same tenant: a tenant's own policies open what it needs.
@@ -85,3 +87,7 @@
 ## D20 — The live tenancy check
 - `scripts/check_tenancy.py` runs four sections and writes one evidence file: **rbac** (every matrix row through `kubectl auth can-i` with impersonation), **admission** (`platform/checks/admission/`: a pod within limits admitted; a container over the LimitRange max, a pod over the tenant's CPU quota, a NodePort and a LoadBalancer Service refused by the quota or limits and not by Gatekeeper), **network** (probe pods in `triage` and `voice`; round 1 = the baseline, round 2 after `platform/checks/netpol-probe-allow.yaml` opens one flow in `triage`), **debug** (an ephemeral container through `kubectl debug --profile=restricted`: from docker.io refused by `platform-allowed-images`, from the allowed registry admitted; D6).
 - Probe image: `mcr.microsoft.com/azurelinux/base/python:3.12.16-2-azl3.0.20261120` (Azure Linux 3.0, from an allowed registry, Python for the socket checks and `http.server`), run as user 65532 with Pod Security `restricted` settings and a read-only root filesystem. The unit tests run every Gatekeeper rule over the probe pods and the check objects, so a refusal in the live check can't come from the platform's own policy by mistake.
+
+## D21 — Evidence only from a cluster that answered before and after the run (updates D5, D20)
+- `scripts/live_cases.py` and `scripts/check_tenancy.py` ask `kubectl get --raw /readyz` before they start and again before they write evidence (`scripts/cluster_ready.py`). Not ready before: one `FAIL the API server is not ready …` line, exit 2, nothing sent. Not answering at the end: the results are printed, then `FAIL the API server stopped answering during the run …`, exit 2, and no evidence file is written.
+- Why: the laptop cluster dropped in the middle of a run twice (M1 once, M2 once: 39 connection errors as `FAIL` lines). Those files looked like evidence. Unit tests (`tests/unit/test_cluster_ready.py`) feed both scripts a fake kubectl for the three cases, and a must-fail mutation removes the check.
