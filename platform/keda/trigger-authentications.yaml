@@ -1,0 +1,14 @@
+# How tenants' scalers authenticate (D22, D27). Each references a Secret in the keda namespace, written by
+# scripts/tenant_secrets.py; a ScaledObject in a tenant namespace refers to it by name.
+apiVersion: keda.sh/v1alpha1
+kind: ClusterTriggerAuthentication
+metadata:
+  name: triage-queue-depth
+  labels:
+    platform.lab/managed: "true"
+    platform.lab/tenant: triage
+spec:
+  secretTargetRef:
+    - parameter: apiKey
+      name: triage-queue-depth
+      key: apiKey

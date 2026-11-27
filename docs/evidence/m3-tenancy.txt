@@ -1,0 +1,55 @@
+date: 2026-11-27T23:07Z
+context: aiplat
+OK   rbac triage-admin create deployments.apps in triage: expected yes, seen yes
+OK   rbac triage-admin delete pods in triage: expected yes, seen yes
+OK   rbac triage-admin create pods/exec in triage: expected yes, seen yes
+OK   rbac triage-admin update pods/ephemeralcontainers in triage: expected yes, seen yes
+OK   rbac triage-admin get resourcequotas in triage: expected yes, seen yes
+OK   rbac triage-admin get secrets in triage: expected no, seen no
+OK   rbac triage-admin create secrets in triage: expected no, seen no
+OK   rbac triage-admin create networkpolicies.networking.k8s.io in triage: expected no, seen no
+OK   rbac triage-admin delete networkpolicies.networking.k8s.io in triage: expected no, seen no
+OK   rbac triage-admin create rolebindings.rbac.authorization.k8s.io in triage: expected no, seen no
+OK   rbac triage-admin update resourcequotas in triage: expected no, seen no
+OK   rbac triage-admin delete limitranges in triage: expected no, seen no
+OK   rbac triage-admin create daemonsets.apps in triage: expected no, seen no
+OK   rbac triage-admin create deployments.apps in voice: expected no, seen no
+OK   rbac triage-admin list pods in voice: expected no, seen no
+OK   rbac triage-admin create namespaces in cluster: expected no, seen no
+OK   rbac triage-admin list nodes in cluster: expected no, seen no
+OK   rbac triage-admin create scaledobjects.keda.sh in triage: expected no, seen no
+OK   rbac triage-admin get secrets in keda: expected no, seen no
+OK   rbac triage-reader list pods in triage: expected yes, seen yes
+OK   rbac triage-reader get pods/log in triage: expected yes, seen yes
+OK   rbac triage-reader create deployments.apps in triage: expected no, seen no
+OK   rbac triage-reader create pods/exec in triage: expected no, seen no
+OK   rbac triage-reader get secrets in triage: expected no, seen no
+OK   rbac triage-reader list pods in voice: expected no, seen no
+OK   rbac voice-admin create deployments.apps in voice: expected yes, seen yes
+OK   rbac voice-admin list pods in triage: expected no, seen no
+OK   rbac operator create deployments.apps in triage: expected yes, seen yes
+OK   rbac operator get secrets in voice: expected yes, seen yes
+OK   rbac operator delete networkpolicies.networking.k8s.io in triage: expected yes, seen yes
+OK   rbac operator create namespaces in cluster: expected yes, seen yes
+OK   rbac triage-default-sa list pods in triage: expected no, seen no
+OK   rbac triage-default-sa get configmaps in triage: expected no, seen no
+OK   admission allowed-within-limits: expected admitted, seen admitted
+OK   admission denied-loadbalancer: expected denied as expected, seen denied as expected
+OK   admission denied-nodeport: expected denied as expected, seen denied as expected
+OK   admission denied-over-container-maximum: expected denied as expected, seen denied as expected
+OK   admission denied-over-tenant-quota: expected denied as expected, seen denied as expected
+OK   network round 1 (baseline) triage/client -> triage/server:8080: expected closed, seen closed
+OK   network round 1 (baseline) voice/client -> triage/server:8080: expected closed, seen closed
+OK   network round 1 (baseline) triage/server -> triage/client:8080: expected closed, seen closed
+OK   network round 1 (baseline) triage/client -> voice/client:8080: expected closed, seen closed
+OK   network round 1 (baseline) triage/client -> kube-dns:53: expected open, seen open
+OK   network round 1 (baseline) triage/client -> kube-api:443: expected closed, seen closed
+OK   network round 1 (baseline) triage/client -> outside 1.1.1.1:443: expected closed, seen closed
+OK   network round 1 (baseline) voice/client -> outside 1.1.1.1:443: expected closed, seen closed
+OK   network round 1 (baseline) triage/client dns lookup: expected resolved, seen resolved
+OK   network round 2 (allow applied) triage/client -> triage/server:8080: expected open, seen open
+OK   network round 2 (allow applied) voice/client -> triage/server:8080: expected closed, seen closed
+OK   network round 2 (allow applied) triage/server -> triage/client:8080: expected closed, seen closed
+OK   debug ephemeral container from docker.io: expected denied by platform-allowed-images, seen denied by platform-allowed-images
+OK   debug ephemeral container from mcr.microsoft.com: expected admitted, seen admitted
+52/52 checks as expected

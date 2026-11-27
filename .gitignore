@@ -8,3 +8,5 @@ __pycache__/
 # Local files
 .env
 out/
+# Tenant charts fetched by scripts/render_tenants.py
+.cache/

@@ -40,6 +40,12 @@ jobs:
         run: uv run --no-sync python scripts/build_policy.py --check
       - name: Tenancy objects are generated from platform/tenants.yaml (D15)
         run: uv run --no-sync python scripts/build_platform.py --check
+      - name: Install Helm (versions.env, checksum-verified)
+        run: |
+          HELM_DIR="$RUNNER_TEMP/bin" ./scripts/install-helm.sh
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - name: Tenant releases are rendered from their pinned charts (D25)
+        run: uv run --no-sync python scripts/render_tenants.py --check
       - name: Decisions index is generated from the headings (D13)
         run: uv run --no-sync python scripts/decisions_index.py --check
       - name: Shell scripts
@@ -59,7 +65,7 @@ jobs:
         run: pipx install "uv==${UV_VERSION}"
       - name: Sync
         run: uv sync --locked
-      - name: Unit tests (policy cases through regopy, tenancy objects and RBAC matrix, decisions drift)
+      - name: Unit tests (policy cases through regopy, tenancy objects, RBAC matrix, rendered releases, decisions drift)
         run: uv run pytest
 
   policy:

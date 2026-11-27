@@ -19,8 +19,8 @@ violation contains {"msg": msg} if {
 violation contains {"msg": msg} if {
     some rule in object.get(np.spec, "ingress", [])
     some peer in object.get(rule, "from", [])
-    not same_namespace_pods(peer)
-    msg := sprintf("NetworkPolicy <%v>: ingress only from pods of namespace <%v>", [np.metadata.name, namespace])
+    not allowed_ingress(peer)
+    msg := sprintf("NetworkPolicy <%v>: ingress only from pods of namespace <%v> or of a platform namespace %v", [np.metadata.name, namespace, input.parameters.ingressNamespaces])
 }
 
 violation contains {"msg": msg} if {
@@ -43,13 +43,25 @@ same_namespace_pods(peer) if {
     object.keys(peer) == {"podSelector"}
 }
 
+allowed_ingress(peer) if same_namespace_pods(peer)
+
+# A platform namespace named exactly, optionally with a podSelector (KEDA's operator, D24).
+allowed_ingress(peer) if {
+    named_namespace(peer)
+    peer.namespaceSelector.matchLabels[name_key] in input.parameters.ingressNamespaces
+}
+
 allowed_egress(peer) if same_namespace_pods(peer)
 
 # A namespace named exactly (matchLabels on kubernetes.io/metadata.name, nothing else), optionally with a podSelector.
-allowed_egress(peer) if {
+named_namespace(peer) if {
     object.keys(peer) - {"podSelector"} == {"namespaceSelector"}
     object.keys(peer.namespaceSelector) == {"matchLabels"}
     object.keys(peer.namespaceSelector.matchLabels) == {name_key}
+}
+
+allowed_egress(peer) if {
+    named_namespace(peer)
     peer.namespaceSelector.matchLabels[name_key] in input.parameters.egressNamespaces
 }
 

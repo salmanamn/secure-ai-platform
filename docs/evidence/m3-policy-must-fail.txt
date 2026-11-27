@@ -1,0 +1,39 @@
+engines: pytest (regopy), gator
+OK   init-containers-not-judged: caught by pytest, gator
+OK   cronjobs-not-judged: caught by pytest, gator
+OK   deployments-not-judged: caught by pytest, gator
+OK   any-registry: caught by pytest, gator
+OK   latest-allowed: caught by pytest, gator
+OK   untagged-allowed: caught by pytest, gator
+OK   memory-limit-not-required: caught by pytest, gator
+OK   token-only-refused-when-true: caught by pytest, gator
+OK   owner-label-not-required: caught by pytest, gator
+OK   pod-security-enforce-only: caught by pytest, gator
+OK   pod-security-any-level: caught by pytest, gator
+OK   every-namespace-exempt: caught by pytest, gator
+OK   tenant-namespace-excluded: caught by pytest, gator
+OK   constraint-dry-run: caught by pytest
+OK   ingress-from-other-namespaces: caught by pytest, gator
+OK   egress-rule-without-peers: caught by pytest, gator
+OK   egress-to-any-namespace: caught by pytest, gator
+OK   egress-to-any-range: caught by pytest, gator
+OK   ranges-shared-between-tenants: caught by pytest, gator
+OK   binding-any-cluster-role: caught by pytest, gator
+OK   binding-any-tenant-group: caught by pytest, gator
+OK   tenant-admin-reads-secrets: caught by pytest
+OK   tenant-admin-writes-network-policies: caught by pytest
+OK   default-deny-dropped: caught by pytest
+OK   limit-range-defaults: caught by pytest
+OK   node-ports-allowed: caught by pytest
+OK   tenant-groups-cross-namespaces: caught by pytest
+OK   ingress-from-any-named-namespace: caught by pytest, gator
+OK   keda-reads-tenant-secrets: caught by pytest
+OK   keda-not-exempt-from-webhook: caught by pytest
+OK   release-on-a-branch: caught by pytest
+OK   release-egress-anywhere: caught by pytest
+OK   release-secret-in-configmap: caught by pytest
+OK   release-renders-a-secret: caught by pytest
+OK   release-nodeport: caught by pytest
+OK   triage-quota-without-headroom: caught by pytest
+OK   readiness-not-checked: caught by pytest
+37/37 mutations caught

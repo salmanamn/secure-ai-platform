@@ -12,10 +12,10 @@ tenants:
   - name: triage
     source: ticket-triage-agent
     owner: salmanamn
-    quota:
+    quota: # the release at full scale plus one rolling-update pod fits (D27, tests/unit/test_releases.py)
       requests.cpu: "1"
       requests.memory: 2Gi
-      limits.memory: 3Gi
+      limits.memory: 4Gi
       pods: "20"
   - name: voice
     source: arabic-voice-assistant

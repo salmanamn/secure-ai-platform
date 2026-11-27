@@ -1,0 +1,34 @@
+date: 2026-11-27T23:02Z
+context: aiplat
+OK   keda keda-operator available: expected 1/1, seen 1/1
+OK   keda keda-operator-metrics-apiserver available: expected 1/1, seen 1/1
+OK   keda keda-admission-webhooks available: expected 1/1, seen 1/1
+OK   keda operator get secrets in keda: expected yes, seen yes
+OK   keda operator get secrets in triage: expected no, seen no
+OK   keda ClusterTriggerAuthentication triage-queue-depth: expected present, seen present
+OK   tenant triage-http available: expected 1/1, seen 1/1
+OK   tenant triage-lab-llm available: expected 1/1, seen 1/1
+OK   tenant triage-lab-eventgrid available: expected 1/1, seen 1/1
+OK   tenant ScaledObject triage-worker ready: expected True, seen True
+OK   tenant worker scaled to zero while the queue is empty: expected 0 replicas, seen 0 after 0 s
+OK   network triage-http -> Service Bus 192.168.58.101:5672: expected open, seen open
+OK   network triage-http -> Cosmos 192.168.58.102:8081: expected open, seen open
+OK   network triage-http -> Azurite 192.168.58.103:10000: expected open, seen open
+OK   network triage-http -> Mailpit 192.168.58.104:1025: expected open, seen open
+OK   network triage-http -> Mailpit UI 192.168.58.104:8025 (port not listed): expected closed, seen closed
+OK   network triage-http -> Docker gateway 192.168.58.1:5672: expected closed, seen closed
+OK   network triage-http -> internet 1.1.1.1:443: expected closed, seen closed
+OK   network triage-http -> kube-api:443: expected closed, seen closed
+OK   e2e M3-E02-020255 submitted: expected 202, seen 202
+OK   e2e M3-E03-020255 submitted: expected 202, seen 202
+OK   e2e M3-E14-020255 submitted: expected 202, seen 202
+OK   e2e keda scaled the worker up: expected 0 -> 1 or more, seen 0 -> 1 after 3 s
+OK   e2e M3-E02-020255 triaged by the worker: expected a Triaged log line, seen category=cards priority=high
+OK   e2e M3-E03-020255 triaged by the worker: expected a Triaged log line, seen category=cards priority=low
+OK   e2e M3-E14-020255 triaged by the worker: expected a Triaged log line, seen category=cards priority=low
+OK   e2e all three triaged: expected within 300 s, seen 34 s, worker replicas 2
+OK   e2e M3-E02-020255 email: expected one [HIGH], seen [HIGH] Ticket M3-E02-020255 - cards
+OK   e2e M3-E03-020255 email: expected none (low priority), seen none
+OK   e2e M3-E14-020255 email: expected one [REVIEW], seen [REVIEW] Ticket M3-E14-020255 - possible prompt injection (low, cards)
+OK   e2e keda scaled the worker back to zero: expected 0 replicas, seen 0 after 33 s
+31/31 checks as expected

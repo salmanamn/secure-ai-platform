@@ -11,4 +11,4 @@ spec:
   egress:
     - to:
         - ipBlock:
-            cidr: 192.168.49.1/32
+            cidr: 192.168.58.96/28

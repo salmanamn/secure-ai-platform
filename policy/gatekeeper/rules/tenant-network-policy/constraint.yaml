@@ -14,9 +14,12 @@ spec:
       - kube-public
       - kube-node-lease
       - gatekeeper-system
+      - keda # KEDA, the platform's autoscaler (D22)
   parameters:
+    ingressNamespaces:
+      - keda # KEDA's operator polls a tenant's scaling endpoint (D24)
     egressNamespaces:
       - kube-system
     egressCIDRs:
       triage:
-        - 192.168.49.1/32 # the laptop, seen from minikube's docker network: Project 3's emulators (M3)
+        - 192.168.58.96/28 # Project 3's emulators on minikube's docker network, .101-.104 (D23)

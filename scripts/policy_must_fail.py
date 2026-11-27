@@ -6,11 +6,14 @@ pods mount no API token; tenant namespaces carry their owner and Pod Security "r
 platform namespaces are exempt; tenant namespaces are not excluded; constraints deny (M1). Tenant network policies
 stay inside the tenant; tenant role bindings grant the tenant roles to that tenant only; the tenant admin role reads
 no Secrets and writes no network policies; every tenant starts closed, with no LoadBalancer or NodePort Services and
-no default resources (M2).
+no default resources (M2). A live check refuses a cluster that isn't answering (D21); a tenant admits only its own
+pods and named platform namespaces (D24); KEDA reads no tenant's Secrets and the webhook skips it (D22); a tenant
+release is pinned, stays in its range, renders no Secret or exposed Service, keeps secret settings out of
+ConfigMaps, and fits its quota (D25-D27) (M3).
 
 The script works on a temporary copy of the repository (tracked and new files, not ignored ones), regenerates the
-templates and the tenancy objects there (scripts/build_policy.py, scripts/build_platform.py), and runs the policy and
-platform tests with regopy, and the gator suite when gator is on PATH.
+templates and the tenancy objects there (scripts/build_policy.py, scripts/build_platform.py), and runs the unit tests
+(the policy through regopy) and the gator suite when gator is on PATH.
 A mutation must turn every engine it names red. Exit 1 when a mutation survives (add a case), when its anchor text is
 not in the file exactly once (update the mutation together with the policy), or when the clean copy fails.
 
@@ -32,6 +35,8 @@ NETPOL = f"{RULES}/tenant-network-policy/rule.rego"
 BINDING = f"{RULES}/tenant-role-binding/rule.rego"
 ROLES = "platform/cluster/roles.yaml"
 BUILD = "scripts/build_platform.py"
+RELEASE = "platform/releases/triage.yaml"
+RENDERED = "platform/rendered/triage.yaml"
 
 
 @dataclass(frozen=True)
@@ -131,7 +136,7 @@ MUTATIONS = [
         engines=("pytest",),  # gator reports violations whatever the action; the unit test checks the action
     ),
     # M2: the two tenancy rules
-    Mutation("ingress-from-other-namespaces", NETPOL, "    not same_namespace_pods(peer)\n", "    false\n"),
+    Mutation("ingress-from-other-namespaces", NETPOL, "    not allowed_ingress(peer)\n", "    false\n"),
     Mutation("egress-rule-without-peers", NETPOL, '    count(object.get(rule, "to", [])) == 0\n', "    false\n"),
     Mutation(
         "egress-to-any-namespace",
@@ -193,6 +198,82 @@ MUTATIONS = [
         'f"tenant:triage:{group}"',
         engines=("pytest",),
     ),
+    # M3: tenant ingress from platform namespaces only (D24)
+    Mutation(
+        "ingress-from-any-named-namespace",
+        NETPOL,
+        "    peer.namespaceSelector.matchLabels[name_key] in input.parameters.ingressNamespaces\n",
+        "",
+    ),
+    # M3: KEDA (D22) and the triage release (D25-D27), checked by the unit tests on the committed files
+    Mutation(
+        "keda-reads-tenant-secrets",
+        "platform/keda/values.yaml",
+        "  operator:\n    restrict:\n      secret: true\n",
+        "  operator:\n    restrict:\n      secret: false\n",
+        engines=("pytest",),
+    ),
+    Mutation(
+        "keda-not-exempt-from-webhook",
+        "platform/gatekeeper/values.yaml",
+        "exemptNamespaces: [kube-system, keda]",
+        "exemptNamespaces: [kube-system]",
+        engines=("pytest",),
+    ),
+    Mutation(
+        "release-on-a-branch",
+        RELEASE,
+        '  ref: "',
+        '  ref: "main" # "',
+        engines=("pytest",),
+    ),
+    Mutation(
+        "release-egress-anywhere",
+        RENDERED,
+        "cidr: 192.168.58.96/28",
+        "cidr: 0.0.0.0/0",
+        engines=("pytest",),
+    ),
+    Mutation(
+        "release-secret-in-configmap",
+        RENDERED,
+        '  QUEUE_DEPTH_ENDPOINT: "true"\n',
+        '  QUEUE_DEPTH_ENDPOINT: "true"\n  COSMOS_KEY: "leaked"\n',
+        engines=("pytest",),
+    ),
+    Mutation(
+        "release-renders-a-secret",
+        RENDERED,
+        "# helm: v4.3.2\n",
+        "# helm: v4.3.2\n---\napiVersion: v1\nkind: Secret\nmetadata:\n  name: leaked\n  namespace: triage\n",
+        engines=("pytest",),
+    ),
+    Mutation(
+        "release-nodeport",
+        RENDERED,
+        "  type: ClusterIP\n  selector:\n    app.kubernetes.io/name: ticket-triage\n"
+        "    app.kubernetes.io/instance: triage\n    app.kubernetes.io/component: lab-llm\n",
+        "  type: NodePort\n  selector:\n    app.kubernetes.io/name: ticket-triage\n"
+        "    app.kubernetes.io/instance: triage\n    app.kubernetes.io/component: lab-llm\n",
+        engines=("pytest",),
+    ),
+    Mutation(
+        "triage-quota-without-headroom",
+        "platform/tenants.yaml",
+        '(D27, tests/unit/test_releases.py)\n      requests.cpu: "1"\n      requests.memory: 2Gi\n'
+        "      limits.memory: 4Gi\n",
+        '(D27, tests/unit/test_releases.py)\n      requests.cpu: "1"\n      requests.memory: 2Gi\n'
+        "      limits.memory: 3Gi\n",
+        engines=("pytest",),
+    ),
+    # M3: evidence only from a cluster that answered (D21)
+    Mutation(
+        "readiness-not-checked",
+        "scripts/cluster_ready.py",
+        '    if result.returncode == 0 and result.stdout.strip() == "ok":\n',
+        "    if True:\n",
+        engines=("pytest",),
+    ),
 ]
 
 
@@ -225,9 +306,8 @@ def run_engines(workdir: Path, gator: str | None) -> dict[str, bool]:
         if build.returncode != 0:
             return {"build": False}
     results = {}
-    tests = ["tests/unit/test_policy.py", "tests/unit/test_platform.py"]
     pytest = subprocess.run(
-        [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", *tests],
+        [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", "tests/unit"],
         cwd=workdir,
         capture_output=True,
         text=True,

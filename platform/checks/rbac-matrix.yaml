@@ -35,6 +35,8 @@ checks:
   - [triage-admin, list, pods, voice, false]
   - [triage-admin, create, namespaces, null, false]
   - [triage-admin, list, nodes, null, false]
+  - [triage-admin, create, scaledobjects.keda.sh, triage, false]
+  - [triage-admin, get, secrets, keda, false]
   - [triage-reader, list, pods, triage, true]
   - [triage-reader, get, pods/log, triage, true]
   - [triage-reader, create, deployments.apps, triage, false]
