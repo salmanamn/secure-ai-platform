@@ -1,0 +1,26 @@
+# KEDA on the laptop cluster: Helm chart kedacore/keda 2.21.1 (D22). Every key exists in the chart's values.yaml.
+# KEDA reads Secrets only in its own namespace: tenants' scalers authenticate through ClusterTriggerAuthentications
+# whose Secrets the platform keeps in keda (platform/keda/trigger-authentications.yaml), never a tenant's Secrets.
+# The chart's default scaledRefKinds ({apiGroup: "*", kind: "*"}) adds `get` on every resource in every namespace to
+# the operator's ClusterRole, Secrets included: Deployments and StatefulSets need none of it (D22).
+rbac:
+  enabledCustomScaledRefKinds: false
+
+permissions:
+  operator:
+    restrict:
+      secret: true
+  metricServer:
+    restrict:
+      secret: true
+
+resources:
+  operator:
+    requests: { cpu: 50m, memory: 100Mi }
+    limits: { memory: 512Mi }
+  metricServer:
+    requests: { cpu: 50m, memory: 100Mi }
+    limits: { memory: 512Mi }
+  webhooks:
+    requests: { cpu: 20m, memory: 64Mi }
+    limits: { memory: 256Mi }

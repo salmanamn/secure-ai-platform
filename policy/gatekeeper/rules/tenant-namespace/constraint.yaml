@@ -15,3 +15,4 @@ spec:
       - kube-public
       - kube-node-lease
       - gatekeeper-system
+      - keda # KEDA, the platform's autoscaler (D22)

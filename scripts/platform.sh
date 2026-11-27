@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 # Platform components on the current kubectl context (D5, D10).
 #
-# Usage: ./scripts/platform.sh gatekeeper   Gatekeeper from its Helm chart, version from versions.env
+# Usage: ./scripts/platform.sh namespaces   the platform's own namespaces (keda), before Gatekeeper labels them (D22)
+#        ./scripts/platform.sh gatekeeper   Gatekeeper from its Helm chart, version from versions.env
 #        ./scripts/platform.sh policy       the generated templates, then the constraints, then wait until enforced
 #        ./scripts/platform.sh tenants      the platform roles, then each tenant's generated objects (D15, D16)
+#        ./scripts/platform.sh keda         KEDA from its Helm chart, then the tenants' trigger authentications (D22)
+#        ./scripts/platform.sh tenant NAME  a tenant's Secrets, then its rendered release (D25, D26)
 #        ./scripts/platform.sh status       templates, constraints and their audit violations
 set -euo pipefail
 
@@ -36,6 +39,9 @@ wait_enforced() { # kind name: every Gatekeeper pod reports the constraint enfor
 }
 
 case "${1:-}" in
+  namespaces)
+    kubectl apply -f platform/cluster/namespaces.yaml
+    ;;
   gatekeeper)
     helm repo add gatekeeper https://open-policy-agent.github.io/gatekeeper/charts --force-update >/dev/null
     helm upgrade --install gatekeeper gatekeeper/gatekeeper --version "$GATEKEEPER_VERSION" \
@@ -67,12 +73,27 @@ case "${1:-}" in
       kubectl apply -f "$f"
     done
     ;;
+  keda)
+    helm repo add kedacore https://kedacore.github.io/charts --force-update >/dev/null
+    helm upgrade --install keda kedacore/keda --version "$KEDA_VERSION" --namespace keda \
+      -f platform/keda/values.yaml --wait --timeout 10m >/dev/null
+    for d in keda-operator keda-operator-metrics-apiserver keda-admission-webhooks; do
+      kubectl -n keda rollout status "deploy/$d" --timeout=180s >/dev/null
+    done
+    kubectl apply -f platform/keda/trigger-authentications.yaml >/dev/null
+    echo "OK   keda $KEDA_VERSION: $(kubectl get clustertriggerauthentications -o name | wc -l) cluster trigger authentication(s)"
+    ;;
+  tenant)
+    name=${2:?usage: $0 tenant NAME}
+    uv run python scripts/tenant_secrets.py "$name"
+    kubectl apply -f "platform/rendered/$name.yaml"
+    ;;
   status)
     kubectl get constrainttemplates
     kubectl get constraints
     ;;
   *)
-    echo "usage: $0 gatekeeper | policy | tenants | status" >&2
+    echo "usage: $0 namespaces | gatekeeper | policy | tenants | keda | tenant NAME | status" >&2
     exit 2
     ;;
 esac

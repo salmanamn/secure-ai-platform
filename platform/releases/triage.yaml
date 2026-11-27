@@ -1,0 +1,78 @@
+# The triage tenant as the platform runs it on the laptop cluster (D25, D27): the tenant's own chart at a pinned
+# commit, its image by digest (both written by scripts/pin_release.py), and the platform's values for this cluster.
+# scripts/render_tenants.py renders it to platform/rendered/triage.yaml; the platform's deploy path applies that.
+tenant: triage
+chart:
+  repo: https://github.com/salmanamn/ticket-triage-agent
+  ref: "b0bc35e24eb299aa8db76122e194aea1f8a2fc9f" # quoted: an all-digit id would read as a number
+  path: deploy/chart/ticket-triage
+
+# The laptop's emulators on minikube's docker network (D23): the tenant repo's docker-compose.cluster.yml puts them
+# at these addresses, inside triage's range in platform-tenant-network-policy (192.168.58.96/28).
+lab:
+  servicebus: 192.168.58.101
+  cosmos: 192.168.58.102
+  azurite: 192.168.58.103
+  mailpit: 192.168.58.104
+
+values:
+  image:
+    repository: ghcr.io/salmanamn/ticket-triage
+    digest: sha256:3d9cd20ed1e0db87b37b0dd3f2842d4c4b6e55d635628cd22eb2aa1f7e04e717
+  functions:
+    http: [submit_ticket, health, notify_ticket, queue_depth_report]
+    worker: [triage_ticket]
+  settings:
+    TICKETS_QUEUE: tickets
+    QUEUE_DEPTH_ENDPOINT: "true" # KEDA's stand-in on the laptop (ticket-triage-agent D29)
+    OPENAI_BASE_URL: http://triage-lab-llm.triage.svc.cluster.local:11434/v1
+    OPENAI_AUTH: key
+    EMBEDDING_MODEL: nomic-embed-text # the fake LLM's hashing embeddings, under the name the KB was seeded with
+    EMBEDDING_DIMENSIONS: "768"
+    EMBED_QUERY_PREFIX: "search_query: "
+    EMBED_DOC_PREFIX: "search_document: "
+    COSMOS_ENDPOINT: http://192.168.58.102:8081
+    COSMOS_ENDPOINT_DISCOVERY: "false" # the emulator advertises localhost (ticket-triage-agent D28)
+    COSMOS_DATABASE: triage-p7 # its own database: Project 3's `triage` holds Ollama's embeddings
+    COSMOS_KB_CONTAINER: knowledge
+    COSMOS_TRIAGE_CONTAINER: triage
+    CHAT_MODEL: phi4-mini:3.8b
+    CHAT_REASONING_EFFORT: ""
+    TRIAGE_KB_K: "3"
+    TRIAGE_TICKET_K: "3"
+    TRIAGE_MAX_ATTEMPTS: "5"
+    TRIAGE_MAX_OUTPUT_TOKENS: "700"
+    OPENAI_TIMEOUT_SECONDS: "60"
+    EVENTGRID_TOPIC_ENDPOINT: http://triage-lab-eventgrid.triage.svc.cluster.local:6100/api/events
+    EVENT_SOURCE: /pearlpay/ticket-triage
+    EMAIL_TRANSPORT: smtp
+    SMTP_HOST: 192.168.58.104
+    SMTP_PORT: "1025"
+    EMAIL_SENDER: triage-bot@pearlpay.example
+    ESCALATION_MAILBOX: escalations@pearlpay.example
+    REVIEW_MAILBOX: human-review@pearlpay.example
+    AzureFunctionsJobHost__extensions__serviceBus__maxConcurrentCalls: "1"
+  secretSettings:
+    secretName: triage-settings
+    keys:
+      [
+        AzureWebJobsStorage,
+        ServiceBusConnection,
+        COSMOS_KEY,
+        EVENTGRID_TOPIC_KEY,
+        OPENAI_API_KEY,
+      ]
+  functionKeys:
+    secretName: triage-function-keys
+  keda:
+    metricsApi:
+      clusterTriggerAuthentication: triage-queue-depth
+  network:
+    egress:
+      - cidr: 192.168.58.96/28
+        ports: [5672, 8081, 10000, 10001, 10002, 1025] # Service Bus, Cosmos, Azurite (3), Mailpit SMTP
+    ingressFromNamespaces:
+      - namespace: keda
+        podLabels: { app.kubernetes.io/name: keda-operator }
+  lab:
+    enabled: true

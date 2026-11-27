@@ -1,0 +1,14 @@
+# The platform's own namespaces beyond Kubernetes' and Gatekeeper's (D22). Applied before Gatekeeper is installed
+# or upgraded, because its post-install job labels them for the webhook to skip (platform/gatekeeper/values.yaml).
+# Each one is in every constraint's excludedNamespaces and in platform-tenant-namespace's platformNamespaces.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: keda
+  labels:
+    platform.lab/managed: "true"
+    # KEDA's pods meet "restricted" (its chart: non-root, seccomp, no capabilities); enforced at "baseline" so a
+    # chart change can't stop the autoscaler, and every "restricted" gap shows as a warning and in the audit.
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/audit: restricted

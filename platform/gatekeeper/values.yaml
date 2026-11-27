@@ -32,9 +32,10 @@ validatingWebhookCustomRules:
     resources: [rolebindings]
 
 controllerManager:
-  # The webhook skips kube-system entirely, so a Gatekeeper outage can never stop the cluster's own pods (D10).
-  # Gatekeeper accepts the ignore label only on namespaces exempted here; postInstall below adds the label.
-  exemptNamespaces: [kube-system]
+  # The webhook skips kube-system and keda entirely, so a Gatekeeper outage can never stop the cluster's own pods or
+  # its autoscaler (D10, D22). Gatekeeper accepts the ignore label only on namespaces exempted here; postInstall
+  # below adds the label (to namespaces that exist: platform/cluster/namespaces.yaml comes first).
+  exemptNamespaces: [kube-system, keda]
   resources:
     requests:
       cpu: 100m
@@ -52,4 +53,4 @@ audit:
 
 postInstall:
   labelNamespace:
-    extraNamespaces: [kube-system]
+    extraNamespaces: [kube-system, keda]

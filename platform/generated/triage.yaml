@@ -24,7 +24,7 @@ spec:
   hard:
     requests.cpu: '1'
     requests.memory: 2Gi
-    limits.memory: 3Gi
+    limits.memory: 4Gi
     pods: '20'
     services.loadbalancers: '0'
     services.nodeports: '0'

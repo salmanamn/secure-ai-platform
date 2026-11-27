@@ -5,7 +5,7 @@ metadata:
   name: k8splatformtenantnetworkpolicy
   annotations:
     metadata.gatekeeper.sh/title: Tenant network policies stay inside the tenant
-    description: A NetworkPolicy in a tenant namespace may name pods of its own namespace, the namespaces listed in egressNamespaces (kube-system, for DNS), and on egress only the address ranges listed for that tenant, written exactly as listed. It may not admit traffic from other namespaces or addresses, and no rule may leave out its peers, because a rule without "from" or "to" matches every source or destination (D18).
+    description: A NetworkPolicy in a tenant namespace may name pods of its own namespace, on ingress the platform namespaces listed in ingressNamespaces (KEDA's), on egress the namespaces listed in egressNamespaces (kube-system, for DNS) and only the address ranges listed for that tenant, written exactly as listed. Namespaces are named exactly, by kubernetes.io/metadata.name. It may not admit traffic from other namespaces or addresses, and no rule may leave out its peers, because a rule without "from" or "to" matches every source or destination (D18, D24).
 spec:
   crd:
     spec:
@@ -15,6 +15,11 @@ spec:
         openAPIV3Schema:
           type: object
           properties:
+            ingressNamespaces:
+              type: array
+              description: Platform namespaces whose pods a tenant may admit (by kubernetes.io/metadata.name).
+              items:
+                type: string
             egressNamespaces:
               type: array
               description: Namespaces any tenant may reach (by kubernetes.io/metadata.name).
@@ -51,8 +56,8 @@ spec:
       violation contains {"msg": msg} if {
           some rule in object.get(np.spec, "ingress", [])
           some peer in object.get(rule, "from", [])
-          not same_namespace_pods(peer)
-          msg := sprintf("NetworkPolicy <%v>: ingress only from pods of namespace <%v>", [np.metadata.name, namespace])
+          not allowed_ingress(peer)
+          msg := sprintf("NetworkPolicy <%v>: ingress only from pods of namespace <%v> or of a platform namespace %v", [np.metadata.name, namespace, input.parameters.ingressNamespaces])
       }
 
       violation contains {"msg": msg} if {
@@ -75,13 +80,25 @@ spec:
           object.keys(peer) == {"podSelector"}
       }
 
+      allowed_ingress(peer) if same_namespace_pods(peer)
+
+      # A platform namespace named exactly, optionally with a podSelector (KEDA's operator, D24).
+      allowed_ingress(peer) if {
+          named_namespace(peer)
+          peer.namespaceSelector.matchLabels[name_key] in input.parameters.ingressNamespaces
+      }
+
       allowed_egress(peer) if same_namespace_pods(peer)
 
       # A namespace named exactly (matchLabels on kubernetes.io/metadata.name, nothing else), optionally with a podSelector.
-      allowed_egress(peer) if {
+      named_namespace(peer) if {
           object.keys(peer) - {"podSelector"} == {"namespaceSelector"}
           object.keys(peer.namespaceSelector) == {"matchLabels"}
           object.keys(peer.namespaceSelector.matchLabels) == {name_key}
+      }
+
+      allowed_egress(peer) if {
+          named_namespace(peer)
           peer.namespaceSelector.matchLabels[name_key] in input.parameters.egressNamespaces
       }
 

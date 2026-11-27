@@ -125,6 +125,10 @@ tests:
     object: rules/tenant-network-policy/cases/allowed-dns.yaml
     assertions:
     - violations: 'no'
+  - name: allowed-ingress-from-keda
+    object: rules/tenant-network-policy/cases/allowed-ingress-from-keda.yaml
+    assertions:
+    - violations: 'no'
   - name: allowed-same-namespace
     object: rules/tenant-network-policy/cases/allowed-same-namespace.yaml
     assertions:
@@ -153,6 +157,11 @@ tests:
     assertions:
     - violations: 'yes'
       message: is not this tenant's pods, an allowed namespace
+  - name: disallowed-egress-to-the-gateway
+    object: rules/tenant-network-policy/cases/disallowed-egress-to-the-gateway.yaml
+    assertions:
+    - violations: 'yes'
+      message: is not this tenant's pods, an allowed namespace
   - name: disallowed-egress-without-to
     object: rules/tenant-network-policy/cases/disallowed-egress-without-to.yaml
     assertions:
@@ -162,12 +171,17 @@ tests:
     object: rules/tenant-network-policy/cases/disallowed-ingress-from-addresses.yaml
     assertions:
     - violations: 'yes'
-      message: ingress only from pods of namespace <triage>
+      message: ingress only from pods of namespace <triage> or of a platform namespace
+  - name: disallowed-ingress-from-keda-by-other-label
+    object: rules/tenant-network-policy/cases/disallowed-ingress-from-keda-by-other-label.yaml
+    assertions:
+    - violations: 'yes'
+      message: ingress only from pods of namespace <triage> or of a platform namespace
   - name: disallowed-ingress-other-namespace
     object: rules/tenant-network-policy/cases/disallowed-ingress-other-namespace.yaml
     assertions:
     - violations: 'yes'
-      message: ingress only from pods of namespace <triage>
+      message: ingress only from pods of namespace <triage> or of a platform namespace
   - name: disallowed-ingress-without-from
     object: rules/tenant-network-policy/cases/disallowed-ingress-without-from.yaml
     assertions:

@@ -4,7 +4,7 @@ metadata:
   name: case-np-from-voice
   namespace: triage
   annotations:
-    test.platform.lab/expect: "ingress only from pods of namespace <triage>"
+    test.platform.lab/expect: "ingress only from pods of namespace <triage> or of a platform namespace"
 spec:
   podSelector: {}
   policyTypes: [Ingress]

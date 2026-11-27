@@ -1,0 +1,16 @@
+# A namespace must be named by kubernetes.io/metadata.name alone: any other label can be set by whoever owns a namespace.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: case-np-from-keda-label
+  namespace: triage
+  annotations:
+    test.platform.lab/expect: "ingress only from pods of namespace <triage> or of a platform namespace"
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              app.kubernetes.io/part-of: keda
